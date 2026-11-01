@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ObjectLab — Single-Object 3DGS Capture Studio</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#11151f;color:#ecf1f6;font:12px system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+#view{width:100vw;height:100vh;display:block}#panel{position:fixed;top:12px;left:12px;bottom:12px;width:402px;max-width:calc(100vw - 24px);z-index:5;background:#181e2af4;border:1px solid #475469;border-radius:14px;box-shadow:0 16px 50px #000a;display:flex;flex-direction:column;overflow:hidden;backdrop-filter:blur(10px)}
+header{padding:16px 17px 12px;border-bottom:1px solid #38465c}header small{letter-spacing:.17em;color:#8bdacc;font-size:9px}h1{font-size:20px;line-height:1.15;margin:7px 0;color:#fff;font-weight:700}p{font-size:11px;line-height:1.55;color:#b7c4d4;margin:7px 0}nav{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:#252f40;padding:7px}button,input,select{font:inherit}button,select,input[type=number],input[type=text]{color:#ecf2fa;background:#2c374b;border:1px solid #59677c;border-radius:7px;min-width:0;padding:8px}button{cursor:pointer}button:hover{background:#445370}button:disabled{opacity:.5;cursor:progress}.primary{background:#8bdacc;border-color:#8bdacc;color:#0f2931;font-weight:720}.primary:hover{background:#adeee2}nav button{font-size:10px;border:0;background:transparent;padding:9px 1px}nav button.active{background:#8bdacc;color:#14252f;font-weight:700}.body{padding:13px;flex:1;overflow-y:auto;scrollbar-color:#5e7089 transparent}.tab{display:none}.tab.active{display:block}.section{background:#232d3f;border:1px solid #354760;border-radius:11px;padding:12px;margin:0 0 12px}.section h2{font-size:12px;margin:0 0 11px;font-weight:700;color:#d5fff6;letter-spacing:.02em}.field{display:flex;align-items:center;justify-content:space-between;gap:9px;margin:9px 0}.field label{flex:1;min-width:0;color:#d8e2ee}.field>select{flex:0 0 57%;width:57%}.field input[type=range]{width:42%;accent-color:#8bdacc}.field output{width:43px;text-align:right;color:#bff1e6;font-size:10px}.field input[type=color]{width:68px;height:30px;padding:2px;cursor:pointer}.row{display:flex;gap:7px;margin:8px 0}.row>*{flex:1;min-width:0}.section>label,.blocklabel{display:block;margin:9px 0 5px;color:#dbe4ef}.section input[type=checkbox]{accent-color:#8bdacc}.check{display:block;margin:8px 0;color:#dae3ef}.small{font-size:10px;color:#a9bace;line-height:1.5}.triple{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.triple label{font-size:10px;color:#cad5e2}.triple input{display:block;width:100%;margin-top:4px}.footer{padding:11px 14px 12px;border-top:1px solid #43546c;background:#1b2535}#status{font-size:11px;color:#d3fbe9;min-height:16px;line-height:1.45}#progress{height:4px;border-radius:4px;background:#2c3b50;margin-top:7px;overflow:hidden}#bar{background:#83e4cf;width:0%;height:100%;transition:width .15s}.hidden{display:none!important}#help{position:fixed;right:15px;bottom:13px;border:1px solid #405368;border-radius:7px;padding:9px 12px;background:#152031e0;color:#d6e6f0;font-size:11px}#info{position:fixed;right:15px;top:14px;z-index:2;max-width:390px;border:1px solid #3d556d;background:#142232dc;border-radius:9px;padding:11px 13px;line-height:1.5;color:#d4e6ee;pointer-events:none}.chip{display:inline-block;padding:3px 7px;margin:2px;background:#344c60;border-radius:4px;font-size:10px}#previewFrameGuide{position:fixed;z-index:3;pointer-events:none;border:2px solid #8bdaccc9;box-shadow:0 0 0 1px #061b207a,inset 0 0 0 1px #061b2080;display:none}#previewFrameGuide span{position:absolute;top:0;left:0;transform:translateY(-100%);font:600 11px system-ui, sans-serif;background:#183040e9;padding:5px 8px;border-radius:6px 6px 0 0;color:#e7fff9;white-space:nowrap}#fileGLB,#fileConfig{display:none}#panel.min{bottom:auto;width:238px}#panel.min nav,#panel.min .body,#panel.min .footer, #panel.min header p{display:none}
+@media(max-width:800px){#panel{top:6px;left:6px;bottom:6px;width:342px}#info{display:none}#help{display:none}}
+</style>
+<script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.159.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.159.0/examples/jsm/"}}</script>
+</head>
+<body>
+<canvas id="view"></canvas><div id="previewFrameGuide"><span id="previewFrameLabel">Exact capture frame</span></div>
+<div id="panel">
+<header><small>INTERACTIVE 3D RECONSTRUCTION / OBJECT CAPTURE</small><button id="minimize" style="float:right;padding:5px 9px">−</button><h1>ObjectLab <span style="color:#91dfcf">3DGS</span></h1><p>Curated objects · actual PBR texture maps · calibrated orbit imagery</p></header>
+<nav><button data-tab="objects" class="active">Objects</button><button data-tab="materials">Materials</button><button data-tab="cameras">Cameras</button><button data-tab="export">Export</button></nav>
+<div class="body">
+<div id="tab-objects" class="tab active">
+<div class="section"><h2>Curated real 3D asset library</h2>
+<p class="small">A smaller library of <b>22 actual objects and object arrangements</b> relevant to 3DGS, rather than 50 largely unsuitable glTF testing samples. No cloth sheets, material grids, morph-test primitives, fox or skull. Models load over the internet and retain source PBR textures. Their source licences are CC0 or CC BY 4.0 (some mixed); retain the original attribution. Browser/WebGL load success must be checked on your device.</p>
+<label class="blocklabel">Choose a real 3D asset</label>
+<select id="objectType" style="width:100%"><optgroup label="Electronics and manufactured goods (1)">
+<option value="asset:BoomBox">Vintage boombox · detailed electronics</option>
+</optgroup>
+<optgroup label="Metal, enamel and hardware (4)">
+<option value="asset:WaterBottle">Metal sports bottle · roughness + coating</option>
+<option value="asset:AnisotropyBarnLamp">Brushed-metal studio lamp</option>
+<option value="asset:PotOfCoals">Burnt copper pot · oxidation and emissive</option>
+<option value="asset:Lantern">Architectural lantern · weathered material</option>
+</optgroup>
+<optgroup label="Upholstery, woven textiles and leather (6)">
+<option value="asset:SheenChair">Fabric chair · sheen and cloth</option>
+<option value="asset:SheenWoodLeatherSofa">Wood + leather sofa · detailed upholstery</option>
+<option value="asset:GlamVelvetSofa">Velvet sofa · rich fabric finish</option>
+<option value="asset:ChairDamaskPurplegold">Damask chair · decorative textile</option>
+<option value="asset:SpecularSilkPouf">Silk pouf · specular woven fabric</option>
+<option value="asset:MaterialsVariantsShoe">Materials-variants shoe · interchangeable looks</option>
+</optgroup>
+<optgroup label="Plants, fish and natural forms (5)">
+<option value="asset:BarramundiFish">Barramundi · textured real fish model</option>
+<option value="asset:DiffuseTransmissionPlant">Potted plant · physically based leaves</option>
+<option value="asset:IridescenceAbalone">Abalone shell · iridescent organic material</option>
+<option value="asset:Avocado">Avocado · textured natural produce</option>
+<option value="asset:MosquitoInAmber">Natural amber specimen · volume / IOR</option>
+</optgroup>
+<optgroup label="Glass, refraction and translucency (5)">
+<option value="asset:DiffuseTransmissionTeacup">Teacup · realistic material model</option>
+<option value="asset:GlassVaseFlowers">Glass flower vases · transparency comparison</option>
+<option value="asset:GlassHurricaneCandleHolder">Glass candle holder · refractive glass</option>
+<option value="asset:IridescenceLamp">Iridescent lamp · colour-shifting glass</option>
+<option value="asset:CommercialRefrigerator">Commercial fridge · glass, metal, condensation</option>
+</optgroup>
+<optgroup label="Multi-object arrangements (1)">
+<option value="asset:ABeautifulGame">Complete chess arrangement · glass / wood</option>
+</optgroup></select>
+<div class="row"><button class="primary" id="loadObject">Load selected model</button><button id="importGLB">Import my .GLB</button></div>
+<input id="fileGLB" type="file" accept=".glb,model/gltf-binary">
+<div id="assetCredit" class="small" style="margin:9px 0;color:#c9d9e9">Select a model and press <b>Load selected model</b>. A model is only considered ready after its GLB geometry and textures load successfully. Source and licence information will appear here.</div>
+<p class="small">Once loaded, the snapshot and export controls use only that successful model. <b>Include object geometry</b> embeds the original source GLB unchanged. The sample models themselves are not bundled in this HTML; if your network blocks GitHub, download one from its source page and use <b>Import my .GLB</b>.</p>
+</div>
+<div class="section"><h2>Object transforms</h2><div class="field"><label>Object scale</label><input id="objectScale" type="range" min=".5" max="1.8" step=".05" value="1"><output id="objectScaleVal">1.00</output></div><div class="field"><label>Orientation (Y axis)</label><input id="objectYaw" type="range" min="0" max="360" step="5" value="0"><output id="objectYawVal">0°</output></div><label class="check"><input id="spinPreview" type="checkbox"> Rotate object in viewer (paused during capture)</label><button id="resetObject" style="width:100%">Reset current object</button></div>
+<div class="section"><h2>Photography stage</h2><div class="field"><label>Background colour</label><input type="color" id="backgroundColor" value="#e4e9ef"></div><div class="field"><label>Ground colour</label><input type="color" id="groundColor" value="#bcc5ce"></div><div class="field"><label>Ground finish</label><select id="groundFinish"><option value="matte">Matte / featureless</option><option value="textured">Subtle speckle texture</option><option value="checker">Feature-rich calibration pattern</option><option value="marble">Marble slab</option><option value="wood">Walnut timber boards</option><option value="terrazzo">Terrazzo chips</option><option value="sandstone">Warm sandstone</option><option value="studio">Soft studio paper sweep</option></select></div><label class="check"><input id="showGround" type="checkbox" checked> Show ground/contact shadow</label><label class="check"><input id="showPedestal" type="checkbox"> Show small presentation pedestal</label><p class="small">You can now switch between neutral studio paper, wood, marble, terrazzo, sandstone, and calibration-style floors. More textured grounds can help feature matching, but they become part of the captured scene. Object-only masks are still available at export.</p></div>
+</div>
+<div id="tab-materials" class="tab">
+<div class="section"><h2>Edit object surface materials</h2><label class="blocklabel">Material part</label><select id="materialRole" style="width:100%"></select><label class="blocklabel">PBR material preset</label><select id="materialPreset" style="width:100%"><option value="matte">Matte ceramic / plaster</option><option value="glossy">Glossy lacquer</option><option value="chrome">Mirror chrome</option><option value="aluminium">Brushed aluminium</option><option value="gold">Polished gold</option><option value="copper">Polished copper</option><option value="glass">Clear glass / transmission</option><option value="frosted">Frosted glass</option><option value="plastic">Glossy coloured plastic</option><option value="wood">Varnished wood</option><option value="rubber">Rough rubber</option><option value="fabric">Matte fabric</option></select><div class="row"><button id="applyPreset" class="primary">Apply to selected part</button><button id="applyAll">Apply to all parts</button></div><p class="small">Select a part to edit the body, trim, leaves, petals, glass, lens, or metallic components independently.</p></div>
+<div class="section"><h2>Physical material controls</h2><div class="field"><label>Base colour</label><input id="matColor" type="color" value="#f2f2e5"></div><div class="field"><label>Metalness</label><input id="matMetal" type="range" min="0" max="1" step=".01" value="0"><output id="matMetalVal">0.00</output></div><div class="field"><label>Roughness</label><input id="matRough" type="range" min=".02" max="1" step=".01" value=".5"><output id="matRoughVal">0.50</output></div><div class="field"><label>Clearcoat</label><input id="matCoat" type="range" min="0" max="1" step=".01" value="0"><output id="matCoatVal">0.00</output></div><div class="field"><label>Transmission</label><input id="matTrans" type="range" min="0" max="1" step=".01" value="0"><output id="matTransVal">0.00</output></div><div class="field"><label>Index of refraction</label><input id="matIor" type="range" min="1" max="2.2" step=".01" value="1.5"><output id="matIorVal">1.50</output></div><div class="field"><label>Environment reflection</label><input id="envStrength" type="range" min="0" max="3" step=".1" value="1.3"><output id="envStrengthVal">1.30</output></div><label class="check"><input id="matFlat" type="checkbox"> Faceted/flat shading</label><p class="small">For chrome and glass, environment illumination is essential. Reflections and transparency are particularly challenging for ordinary vanilla 3DGS.</p></div>
+<div class="section"><h2>Lighting</h2><div class="field"><label>Key light colour</label><input id="keyColor" type="color" value="#fff2df"></div><div class="field"><label>Key intensity</label><input id="keyPower" type="range" min="0" max="9" step=".1" value="3.5"><output id="keyPowerVal">3.5</output></div><div class="field"><label>Fill intensity</label><input id="fillPower" type="range" min="0" max="8" step=".1" value="2.4"><output id="fillPowerVal">2.4</output></div><div class="field"><label>Rim intensity</label><input id="rimPower" type="range" min="0" max="8" step=".1" value="2.3"><output id="rimPowerVal">2.3</output></div><div class="field"><label>Exposure</label><input id="exposure" type="range" min=".4" max="1.7" step=".02" value=".9"><output id="exposureVal">0.90</output></div><label class="check"><input id="shadow" type="checkbox" checked> Soft contact shadows</label></div>
+</div>
+<div id="tab-cameras" class="tab">
+<div class="section"><h2>Object-centred orbit trajectories</h2>
+<div class="field"><label>Capture angle profile</label><select id="captureProfile"><option value="auto" selected>Auto · tabletop aware</option><option value="general">Full object · custom elevations</option><option value="tabletop">Tabletop · high-angle rings</option></select></div>
+<p class="small">Auto uses high-angle rings for flat/tabletop models (including chess): 40°–78° plus an 85° top cap. For ordinary 3D objects it uses the elevation sliders below. Choose Full object for manual elevations.</p>
+<div class="row"><button data-count="96">96 views</button><button data-count="180" class="primary">180 views</button><button data-count="300">300 views</button></div>
+<div class="field"><label>Elevation rings</label><input id="rings" type="range" min="2" max="8" step="1" value="5"><output id="ringsVal">5</output></div><div class="field"><label>Views per ring</label><input id="perRing" type="range" min="12" max="60" step="2" value="36"><output id="perRingVal">36</output></div><div class="field"><label>Lowest elevation (°)</label><input id="elevMin" type="range" min="-30" max="20" step="5" value="-15"><output id="elevMinVal">−15</output></div><div class="field"><label>Highest elevation (°)</label><input id="elevMax" type="range" min="35" max="80" step="5" value="65"><output id="elevMaxVal">65</output></div><div class="field"><label>Camera distance</label><input id="radius" type="range" min="1" max="1.8" step=".05" value="1.18"><output id="radiusVal">1.18×</output></div><div class="field"><label>Vertical field of view</label><input id="fov" type="range" min="30" max="65" step="1" value="42"><output id="fovVal">42°</output></div><label class="check"><input id="topCap" type="checkbox" checked> Include 12 extra top-angle views</label><label class="check"><input id="showPath" type="checkbox"> Show camera path in viewer</label><div class="row"><button id="makePath" class="primary">Generate camera positions</button><button id="fitObject">Fit framing</button></div><p class="small">All rings look towards the object centre. Each successive ring is azimuthally staggered for broader surface coverage. Rendering always uses fixed lights and a stationary object.</p></div>
+<div class="section"><h2>Inspect exact capture views</h2><input type="range" id="frameSlider" min="1" max="192" value="1" style="width:100%;accent-color:#8bdacc"><div class="small" id="frameDetails">Generate a path, then select a frame to preview. The preview frame matches the selected landscape 16:9 export format; it does not stretch to fill the browser window.</div><div class="row"><button id="prev">← Previous</button><button id="previewFirst" class="primary">Preview first</button><button id="next">Next →</button></div><button id="freeOrbit" style="width:100%">Return to free orbit</button></div>
+<div class="section"><h2>Coverage checks</h2><div id="qa" class="small">Calculated after path generation.</div></div>
+</div>
+<div id="tab-export" class="tab">
+<div class="section"><h2>Render image dataset</h2><label class="blocklabel">Image resolution</label><select id="resolution" style="width:100%"><option value="1280x720" selected>1280 × 720 · HD / 720p (16:9)</option><option value="1920x1080">1920 × 1080 · Full HD / 1080p (16:9)</option><option value="2560x1440">2560 × 1440 · QHD / 1440p (16:9)</option><option value="3840x2160">3840 × 2160 · Ultra HD / 4K (16:9; GPU-intensive)</option></select><label class="blocklabel">Image format</label><select id="imageFormat" style="width:100%"><option value="jpg">JPEG · quality 96%</option><option value="png">PNG · lossless, large datasets</option></select><label class="blocklabel">Held-out test selection</label><select id="testEvery" style="width:100%"><option value="8" selected>Every 8th image · 12.5% test</option><option value="10">Every 10th image · 10% test</option><option value="12">Every 12th image · 8.3% test</option><option value="0">No held-out images</option></select><label class="check"><input id="makeMasks" type="checkbox" checked> Export object silhouette masks (PNG)</label><label class="check"><input id="makeColmap" type="checkbox" checked> Include known COLMAP camera poses</label><label class="check"><input id="makeGLB" type="checkbox"> Include object geometry (.glb ground truth)</label><label class="check"><input id="makeScene" type="checkbox" checked> Include scene settings and capture QA</label><div class="row"><button id="snapshot">Save current view</button><button id="saveConfig">Save scene JSON</button></div><button id="exportDataset" class="primary" style="width:100%;margin:5px 0">Export dataset ZIP</button><p class="small">ZIP includes train/images, test/images, optional masks, camera-to-world and COLMAP poses, capture manifest, and reconstruction instructions. Large high-resolution datasets may exhaust browser memory; start with 96 views at 1280 × 720 to test your computer. All built-in capture resolutions are landscape 16:9. Curated assets are restricted to CC0 / CC BY 4.0 style licences suitable for research use; keep the bundled attribution text with any JPEG or paper figures.</p></div>
+<div class="section"><h2>Repeatability and import</h2><div class="row"><button id="loadConfig">Load scene settings</button><button id="resetAll">Reset studio</button></div><input id="fileConfig" type="file" accept=".json,application/json"><p class="small">The loaded asset is stationary; lighting and materials remain fixed. The held-out test views are excluded from training, COLMAP feature extraction/matching/triangulation, and MVS. Keep attribution with any JPEG-RF datasets, publications, figures or presentations.</p></div>
+</div>
+</div>
+<div class="footer"><div id="status" role="status">Initialising 3D studio…</div><div id="progress"><div id="bar"></div></div></div></div>
+<div id="info">OBJECT-CENTRED CAPTURE <span class="chip" id="modelBadge">No model loaded</span><span class="chip" id="countBadge">192 views</span><div id="infoDetail" class="small">Edit materials and inspect camera rings before exporting.</div></div>
+<div id="help">Drag: orbit · Right-drag: pan · Scroll: zoom · Cameras tab: preview exact capture poses</div>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {DRACOLoader} from 'three/addons/loaders/DRACOLoader.js';
+import {KTX2Loader} from 'three/addons/loaders/KTX2Loader.js';
+import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
+import JSZip from 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm';
+const $=id=>document.getElementById(id), rad=v=>THREE.MathUtils.degToRad(v), deg=v=>THREE.MathUtils.radToDeg(v);
+const canvas=$('view'),renderer=new THREE.WebGLRenderer({canvas,antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance',alpha:false});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(innerWidth,innerHeight,false);renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.9;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();scene.background=new THREE.Color('#e4e9ef');
+const envScene=new RoomEnvironment(renderer),pmrem=new THREE.PMREMGenerator(renderer);const environment=pmrem.fromScene(envScene,.04).texture;
+scene.environment=environment;scene.environmentIntensity=1.3;envScene.dispose();pmrem.dispose();
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.02,100);camera.position.set(3.2,2.0,3.5);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.07;controls.minDistance=.3;controls.maxDistance=30;
+const hemi=new THREE.HemisphereLight(0xffffff,0x5a6473,1.35);scene.add(hemi);
+const key=new THREE.DirectionalLight(0xfff2df,3.5);key.position.set(3.5,6,4.5);key.castShadow=true;key.shadow.mapSize.set(3072,3072);key.shadow.camera.left=-5;key.shadow.camera.right=5;key.shadow.camera.top=5;key.shadow.camera.bottom=-5;key.shadow.camera.near=.5;key.shadow.camera.far=22;key.shadow.bias=-.00008;key.shadow.normalBias=.014;scene.add(key);
+const fill=new THREE.DirectionalLight(0xd7efff,2.4);fill.position.set(-5,3,2);scene.add(fill);
+const rim=new THREE.DirectionalLight(0xffffff,2.3);rim.position.set(-2,5,-4);scene.add(rim);
+const groundMat=new THREE.MeshStandardMaterial({color:0xbcc5ce,roughness:.90,metalness:0}),ground=new THREE.Mesh(new THREE.CircleGeometry(25,128),groundMat);ground.rotation.x=-Math.PI/2;ground.position.y=-.055;ground.receiveShadow=true;scene.add(ground);
+const pedestal=new THREE.Group();const pedestalMat=new THREE.MeshStandardMaterial({color:0xaeb5c2,roughness:.60,metalness:.10});const pedMesh=new THREE.Mesh(new THREE.CylinderGeometry(.92,1.02,.11,80),pedestalMat);pedMesh.position.y=-.035;pedMesh.castShadow=true;pedMesh.receiveShadow=true;pedestal.add(pedMesh);pedestal.visible=false;scene.add(pedestal);
+const pathOverlay=new THREE.Group();scene.add(pathOverlay);pathOverlay.visible=false;
+let objectGroup=new THREE.Group(),activeType='bunny',importedGLB=null,roles=new Map(),frames=[],currentIndex=0,preview=false,busy=false,pathDirty=true,currentCentre=new THREE.Vector3(0,.78,0),objectRadius=.92,objectHeight=1.6,autoSpin=0;
+scene.add(objectGroup);
+const DEFAULTS={};document.querySelectorAll('#panel input,#panel select').forEach(el=>{if(el.id&&el.type!=='file')DEFAULTS[el.id]=el.type==='checkbox'?el.checked:el.value});
+const CURATED_ASSETS={"BoomBox":{"name":"Vintage boombox · detailed electronics","license":"CC0","credit":"Microsoft","category":"electronics","floor":"wood","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/BoomBox/glTF-Binary/BoomBox.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/BoomBox"},"BarramundiFish":{"name":"Barramundi · textured real fish model","license":"CC0","credit":"Microsoft","category":"organic","floor":"studio","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/BarramundiFish/glTF-Binary/BarramundiFish.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/BarramundiFish"},"WaterBottle":{"name":"Metal sports bottle · roughness + coating","license":"CC0","credit":"Microsoft","category":"metal","floor":"studio","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/WaterBottle/glTF-Binary/WaterBottle.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/WaterBottle"},"SheenChair":{"name":"Fabric chair · sheen and cloth","license":"CC0","credit":"Wayfair / Eric Chadwick","category":"fabric","floor":"wood","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/SheenChair/glTF-Binary/SheenChair.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/SheenChair"},"SheenWoodLeatherSofa":{"name":"Wood + leather sofa · detailed upholstery","license":"CC BY 4.0 + CC0","credit":"Darmstadt Graphics Group / Eric Chadwick; Fran Calvente","category":"fabric","floor":"wood","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/SheenWoodLeatherSofa/glTF-Binary/SheenWoodLeatherSofa.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/SheenWoodLeatherSofa"},"GlamVelvetSofa":{"name":"Velvet sofa · rich fabric finish","license":"CC BY 4.0","credit":"Wayfair / Eric Chadwick","category":"fabric","floor":"wood","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/GlamVelvetSofa/glTF-Binary/GlamVelvetSofa.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/GlamVelvetSofa"},"ChairDamaskPurplegold":{"name":"Damask chair · decorative textile","license":"CC BY 4.0","credit":"Wayfair / Eric Chadwick","category":"fabric","floor":"wood","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/ChairDamaskPurplegold/glTF-Binary/ChairDamaskPurplegold.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/ChairDamaskPurplegold"},"DiffuseTransmissionPlant":{"name":"Potted plant · physically based leaves","license":"CC BY 4.0 + CC0","credit":"DGG / Eric Chadwick; Rico Cilliers","category":"organic","floor":"sandstone","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/DiffuseTransmissionPlant/glTF-Binary/DiffuseTransmissionPlant.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/DiffuseTransmissionPlant"},"DiffuseTransmissionTeacup":{"name":"Teacup · realistic material model","license":"CC0","credit":"Poly Haven / Eric Chadwick","category":"glass","floor":"marble","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/DiffuseTransmissionTeacup/glTF-Binary/DiffuseTransmissionTeacup.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/DiffuseTransmissionTeacup"},"GlassVaseFlowers":{"name":"Glass flower vases · transparency comparison","license":"CC0","credit":"Eric Chadwick / Rico Cilliers","category":"glass","floor":"wood","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/GlassVaseFlowers/glTF-Binary/GlassVaseFlowers.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/GlassVaseFlowers"},"GlassHurricaneCandleHolder":{"name":"Glass candle holder · refractive glass","license":"CC BY 4.0","credit":"Wayfair / Eric Chadwick","category":"glass","floor":"wood","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/GlassHurricaneCandleHolder/glTF-Binary/GlassHurricaneCandleHolder.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/GlassHurricaneCandleHolder"},"IridescenceLamp":{"name":"Iridescent lamp · colour-shifting glass","license":"CC BY 4.0","credit":"Wayfair / Eric Chadwick","category":"glass","floor":"marble","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/IridescenceLamp/glTF-Binary/IridescenceLamp.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/IridescenceLamp"},"IridescenceAbalone":{"name":"Abalone shell · iridescent organic material","license":"CC BY 4.0","credit":"Abby Crawford / Eric Chadwick","category":"organic","floor":"sandstone","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/IridescenceAbalone/glTF-Binary/IridescenceAbalone.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/IridescenceAbalone"},"AnisotropyBarnLamp":{"name":"Brushed-metal studio lamp","license":"CC BY 4.0","credit":"Wayfair / Eric Chadwick","category":"metal","floor":"marble","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/AnisotropyBarnLamp/glTF-Binary/AnisotropyBarnLamp.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/AnisotropyBarnLamp"},"PotOfCoals":{"name":"Burnt copper pot · oxidation and emissive","license":"CC BY 4.0","credit":"DGG / Eric Chadwick","category":"metal","floor":"sandstone","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/PotOfCoals/glTF-Binary/PotOfCoals.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/PotOfCoals"},"SpecularSilkPouf":{"name":"Silk pouf · specular woven fabric","license":"CC BY 4.0","credit":"Wayfair / Eric Chadwick","category":"fabric","floor":"wood","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/SpecularSilkPouf/glTF-Binary/SpecularSilkPouf.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/SpecularSilkPouf"},"CommercialRefrigerator":{"name":"Commercial fridge · glass, metal, condensation","license":"CC BY 4.0","credit":"DGG / Eric Chadwick; Sean Thomas","category":"glass","floor":"terrazzo","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/CommercialRefrigerator/glTF-Binary/CommercialRefrigerator.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CommercialRefrigerator"},"Avocado":{"name":"Avocado · textured natural produce","license":"CC0","credit":"Microsoft","category":"organic","floor":"wood","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Avocado/glTF-Binary/Avocado.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/Avocado"},"Lantern":{"name":"Architectural lantern · weathered material","license":"CC0","credit":"Microsoft / sbtron; Frank Galligan","category":"metal","floor":"sandstone","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Lantern/glTF-Binary/Lantern.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/Lantern"},"ABeautifulGame":{"name":"Complete chess arrangement · glass / wood","license":"CC BY 4.0","credit":"ASWF MaterialX / Ed Mackey","category":"multi","floor":"wood","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/ABeautifulGame/glTF-Binary/ABeautifulGame.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/ABeautifulGame"},"MosquitoInAmber":{"name":"Natural amber specimen · volume / IOR","license":"CC BY 4.0","credit":"Loic Norgeot / Sketchfab","category":"organic","floor":"sandstone","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/MosquitoInAmber/glTF-Binary/MosquitoInAmber.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/MosquitoInAmber"},"MaterialsVariantsShoe":{"name":"Materials-variants shoe · interchangeable looks","license":"CC BY 4.0","credit":"Shopify","category":"fabric","floor":"wood","model":"https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/MaterialsVariantsShoe/glTF-Binary/MaterialsVariantsShoe.glb","source":"https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/MaterialsVariantsShoe"}};
+let activeAsset=null,loadingAsset=false,sourceGLBFile=null;
+function status(s,p){$('status').textContent=s;if(p!==undefined)$('bar').style.width=(Math.max(0,Math.min(1,p))*100).toFixed(1)+'%'}
+function download(data,name){const u=URL.createObjectURL(data),a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),15000)}
+function mat(role,opts){const m=new THREE.MeshPhysicalMaterial({color:0xeeeeee,roughness:.65,metalness:0,clearcoat:0,clearcoatRoughness:.18,side:THREE.FrontSide,...opts});roles.set(role,m);return m}
+function mesh(parent,geo,material,x=0,y=0,z=0){const m=new THREE.Mesh(geo,material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
+function ball(p,r,m,x,y,z,sx=1,sy=1,sz=1){const q=mesh(p,new THREE.SphereGeometry(r,64,48),m,x,y,z);q.scale.set(sx,sy,sz);return q}
+function cylinder(p,top,bottom,h,material,x,y,z,n=72,open=false){return mesh(p,new THREE.CylinderGeometry(top,bottom,h,Math.max(n,64),1,open),material,x,y,z)}
+function rounded(p,w,h,d,r,material,x=0,y=0,z=0){return mesh(p,new RoundedBoxGeometry(w,h,d,8,r),material,x,y,z)}
+function torus(p,R,r,material,x=0,y=0,z=0){const q=mesh(p,new THREE.TorusGeometry(R,r,24,144),material,x,y,z);q.rotation.x=Math.PI/2;return q}
+function tube(p,pts,r,material,n=80){const crv=new THREE.CatmullRomCurve3(pts.map(v=>new THREE.Vector3(...v)),false,'centripetal');return mesh(p,new THREE.TubeGeometry(crv,n,r,14,false),material)}
+// Surface-of-revolution builder with a smooth *vertical* silhouette as well as smooth radial shading.
+// Increasing circular segments alone cannot remove the corners of the original coarse 2D profile.
+function softenedSection(points,subdivisions=8){
+  const pts=points.map(a=>new THREE.Vector3(a[0],a[1],0));
+  if(pts.length<4)return points.map(a=>new THREE.Vector2(Math.max(0,a[0]),a[1]));
+  const curve=new THREE.CatmullRomCurve3(pts,false,'centripetal');
+  const result=[];
+  for(let i=0;i<pts.length-1;i++)for(let k=0;k<subdivisions;k++){
+    const t=(i+k/subdivisions)/(pts.length-1),v=curve.getPoint(t);
+    // Preserve nonnegative radii at the axis and prevent overshoot below the bottom contact.
+    result.push(new THREE.Vector2(Math.max(0,v.x),Math.max(Math.min(points[0][1],points[points.length-1][1])-.02,v.y)));
+  }
+  const last=points[points.length-1];result.push(new THREE.Vector2(Math.max(0,last[0]),last[1]));
+  return result;
+}
+function lathe(p,points,m,segments=192){
+  const geometry=new THREE.LatheGeometry(softenedSection(points,7),Math.max(segments,160));
+  // LatheGeometry generates smooth vertex normals for the curved profile.
+  return mesh(p,geometry,m);
+}
+function leaf(parent,pos,angle,scale,material){const shape=new THREE.Shape();shape.moveTo(0,0);shape.bezierCurveTo(-.16,.12,-.19,.43,0,.70);shape.bezierCurveTo(.18,.41,.18,.12,0,0);const m=mesh(parent,new THREE.ShapeGeometry(shape,12),material,...pos);m.rotation.set(-.24,angle,Math.sin(angle)*.32);m.scale.setScalar(scale);m.material.side=THREE.DoubleSide;return m}
+function woodTexture(){const c=document.createElement('canvas');c.width=512;c.height=512;const ctx=c.getContext('2d');ctx.fillStyle='#e1bf8a';ctx.fillRect(0,0,512,512);let seed=81;function rng(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296}for(let i=0;i<300;i++){ctx.strokeStyle=`rgba(84,43,20,${.04+rng()*.13})`;ctx.lineWidth=.4+rng()*2.3;let x=rng()*512;ctx.beginPath();ctx.moveTo(x,0);ctx.bezierCurveTo(x+rng()*42-21,160,x+rng()*48-24,330,x+rng()*36-18,512);ctx.stroke()}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.colorSpace=THREE.SRGBColorSpace;return t}
+const woodMap=woodTexture();
+// MODEL LIBRARY V2 — all meshes generated locally and deterministic; no external model assets.
+const bevel=(parent,w,h,d,r,m,x=0,y=0,z=0)=>rounded(parent,w,h,d,r,m,x,y,z);
+const smoothMin=(a,b,k)=>{const h=Math.max(k-Math.abs(a-b),0)/k;return Math.min(a,b)-h*h*k*.25};
+function sdEll(x,y,z,cx,cy,cz,rx,ry,rz,twist=0){let X=x-cx,Y=y-cy,Z=z-cz;if(twist){const ca=Math.cos(twist),sa=Math.sin(twist);const xx=X*ca-Y*sa;Y=X*sa+Y*ca;X=xx}const u=Math.hypot(X/rx,Y/ry,Z/rz),v=Math.hypot(X/(rx*rx),Y/(ry*ry),Z/(rz*rz));return v<1e-8?-Math.min(rx,ry,rz):(u*(u-1))/v}
+function sdCapsule(x,y,z,a,b,r){const vx=b[0]-a[0],vy=b[1]-a[1],vz=b[2]-a[2],v2=vx*vx+vy*vy+vz*vz;const t=Math.max(0,Math.min(1,((x-a[0])*vx+(y-a[1])*vy+(z-a[2])*vz)/v2));return Math.hypot(x-a[0]-vx*t,y-a[1]-vy*t,z-a[2]-vz*t)-r}
+// Marching tetrahedra, shared edge vertices and per-vertex analytic SDF-gradient normals.
+// Used to form ONE continuous organic surface rather than separated intersecting primitives.
+function solidSculpt(sdf,box,grid,material){
+  const nx=grid[0],ny=grid[1],nz=grid[2],strideY=nx+1,strideZ=(nx+1)*(ny+1);
+  const size=(nx+1)*(ny+1)*(nz+1),values=new Float32Array(size);
+  const dx=(box[1]-box[0])/nx,dy=(box[3]-box[2])/ny,dz=(box[5]-box[4])/nz;
+  const id=(i,j,k)=>i+strideY*j+strideZ*k;
+  for(let k=0;k<=nz;k++)for(let j=0;j<=ny;j++)for(let i=0;i<=nx;i++)values[id(i,j,k)]=sdf(box[0]+i*dx,box[2]+j*dy,box[4]+k*dz);
+  let verts=[],norms=[],indices=[],edges=new Map();
+  function point(i,j,k){return [box[0]+i*dx,box[2]+j*dy,box[4]+k*dz]}
+  const eps=Math.min(dx,dy,dz)*.3;
+  function intersect(a,b){const ia=a[0],ib=b[0],edgeKey=ia<ib?ia+','+ib:ib+','+ia;let v=edges.get(edgeKey);if(v!==undefined)return v;
+    const t=Math.max(.00001,Math.min(.99999,values[ia]/(values[ia]-values[ib])));
+    const x=a[1]+(b[1]-a[1])*t,y=a[2]+(b[2]-a[2])*t,z=a[3]+(b[3]-a[3])*t;
+    const gx=sdf(x+eps,y,z)-sdf(x-eps,y,z),gy=sdf(x,y+eps,z)-sdf(x,y-eps,z),gz=sdf(x,y,z+eps)-sdf(x,y,z-eps),len=Math.hypot(gx,gy,gz)||1;
+    v=verts.length/3;verts.push(x,y,z);norms.push(gx/len,gy/len,gz/len);edges.set(edgeKey,v);return v}
+  function addTriangle(a,b,c){let ax=verts[a*3],ay=verts[a*3+1],az=verts[a*3+2],bx=verts[b*3],by=verts[b*3+1],bz=verts[b*3+2],cx=verts[c*3],cy=verts[c*3+1],cz=verts[c*3+2];let u1=bx-ax,u2=by-ay,u3=bz-az,v1=cx-ax,v2=cy-ay,v3=cz-az;const d=(u2*v3-u3*v2)*norms[a*3]+(u3*v1-u1*v3)*norms[a*3+1]+(u1*v2-u2*v1)*norms[a*3+2];if(d>=0)indices.push(a,b,c);else indices.push(a,c,b)}
+  const cube=[[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]];
+  const tetra=[[0,5,1,6],[0,1,2,6],[0,2,3,6],[0,3,7,6],[0,7,4,6],[0,4,5,6]];
+  for(let k=0;k<nz;k++)for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
+    const corner=cube.map(([di,dj,dk])=>{const I=i+di,J=j+dj,K=k+dk;return [id(I,J,K),box[0]+I*dx,box[2]+J*dy,box[4]+K*dz]});
+    let neg=false,pos=false;for(let a=0;a<8;a++)if(values[corner[a][0]]<0)neg=true;else pos=true;if(!neg||!pos)continue;
+    for(const tet of tetra){let inside=[],outside=[];for(const t of tet)(values[corner[t][0]]<0?inside:outside).push(corner[t]);
+      if(!inside.length||!outside.length)continue;
+      if(inside.length===1){const a=intersect(inside[0],outside[0]),b=intersect(inside[0],outside[1]),c=intersect(inside[0],outside[2]);addTriangle(a,b,c)}
+      else if(inside.length===3){const a=intersect(outside[0],inside[0]),b=intersect(outside[0],inside[1]),c=intersect(outside[0],inside[2]);addTriangle(a,b,c)}
+      else {const a=intersect(inside[0],outside[0]),b=intersect(inside[0],outside[1]),c=intersect(inside[1],outside[0]),d=intersect(inside[1],outside[1]);addTriangle(a,b,c);addTriangle(b,d,c)}
+    }
+  }
+  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));geometry.setAttribute('normal',new THREE.Float32BufferAttribute(norms,3));geometry.setIndex(indices);geometry.computeBoundingSphere();
+  const uv=[];for(let i=0;i<verts.length;i+=3)uv.push(.5+Math.atan2(verts[i+2],verts[i])/(2*Math.PI),verts[i+1]*.42);geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));return mesh(objectGroup,geometry,material)
+}
+function profile(points,m){return lathe(objectGroup,points,m,192)}
+function sweep(parent,points,radii,material,steps=96,sides=20){
+  const crv=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)),false,'centripetal');
+  steps=Math.max(steps,60);sides=Math.max(sides,radii.some(r=>r>.04)?28:10);
+  const fr=crv.computeFrenetFrames(steps,false);const pos=[],norm=[],uv=[],idx=[];
+  for(let i=0;i<=steps;i++){const t=i/steps,p=crv.getPoint(t),fi=Math.min(radii.length-2,Math.floor(t*(radii.length-1))),ft=t*(radii.length-1)-fi;
+    const v=k=>radii[Math.min(radii.length-1,Math.max(0,k))];const a=v(fi-1),b=v(fi),c=v(fi+1),d=v(fi+2);
+    const smooth=.5*((2*b)+(-a+c)*ft+(2*a-5*b+4*c-d)*ft*ft+(-a+3*b-3*c+d)*ft*ft*ft);const r=Math.max(.0008,Math.min(Math.max(b,c)*1.12,smooth));
+    for(let j=0;j<=sides;j++){const a=j/sides*Math.PI*2,N=fr.normals[i],B=fr.binormals[i],nx=N.x*Math.cos(a)+B.x*Math.sin(a),ny=N.y*Math.cos(a)+B.y*Math.sin(a),nz=N.z*Math.cos(a)+B.z*Math.sin(a);pos.push(p.x+nx*r,p.y+ny*r,p.z+nz*r);norm.push(nx,ny,nz);uv.push(t,j/sides)}
+  }for(let i=0;i<steps;i++)for(let j=0;j<sides;j++){let a=i*(sides+1)+j,b=a+sides+1;idx.push(a,b,a+1,b,b+1,a+1)}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(norm,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);return mesh(parent,g,material)
+}
+// Leaves connect directly to stem locations; smoothly varying width and rolled midrib.
+function botanicalBlade(parent,start,end,width,material){
+  const a=new THREE.Vector3(...start),b=new THREE.Vector3(...end),forward=b.clone().sub(a),length=forward.length();
+  if(length<.0001)return;
+  const lateral=new THREE.Vector3(-forward.z,0,forward.x).normalize();
+  if(lateral.lengthSq()<.01)lateral.set(1,0,0);
+  const out=new THREE.Vector3().crossVectors(forward.clone().normalize(),lateral).normalize();
+  const positions=[],uvs=[],indices=[],U=28,V=12;
+  for(let i=0;i<=U;i++){
+    const t=i/U;
+    const centre=a.clone().addScaledVector(forward,t).addScaledVector(out,.025*Math.sin(Math.PI*t));
+    const bladeWidth=width*Math.pow(Math.sin(Math.PI*t),.77)*(1-.12*t);
+    for(let j=0;j<=V;j++){
+      const v=2*j/V-1;
+      const point=centre.clone().addScaledVector(lateral,v*bladeWidth)
+       .addScaledVector(out,.024*(1-v*v)*Math.sin(Math.PI*t)+.012*v*v*t);
+      positions.push(point.x,point.y,point.z);uvs.push(t,j/V);
+    }
+  }
+  for(let i=0;i<U;i++)for(let j=0;j<V;j++){const a=i*(V+1)+j,b=a+V+1;indices.push(a,b,a+1,b,b+1,a+1)}
+  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geometry.setIndex(indices);geometry.computeVertexNormals();
+  return mesh(parent,geometry,material);
+}
+// Curved, double-sided botanical petal: attached at the flower centre and curled at tip.
+function flowerPetal(parent,anchor,angle,len,width,material,lean=.18){const pos=[],idx=[],uSeg=20,vSeg=10;
+  for(let i=0;i<=uSeg;i++){let u=i/uSeg,centerX=Math.cos(angle)*len*u,centerY=Math.sin(angle)*len*u,centerZ=.09*Math.sin(Math.PI*u)+lean*u*u;
+    for(let j=0;j<=vSeg;j++){const v=(j/vSeg-.5)*2,spread=width*Math.pow(Math.sin(Math.PI*Math.pow(u,.77)),.72)*v;const x=anchor[0]+centerX-Math.sin(angle)*spread,y=anchor[1]+centerY+Math.cos(angle)*spread,z=anchor[2]+centerZ+.055*(1-v*v)*Math.sin(Math.PI*u);pos.push(x,y,z)}
+  }for(let i=0;i<uSeg;i++)for(let j=0;j<vSeg;j++){let a=i*(vSeg+1)+j,b=a+vSeg+1;idx.push(a,b,a+1,b,b+1,a+1)}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();return mesh(parent,g,material)
+}
+function ceramicDetail(matObj){matObj.clearcoat=Math.max(matObj.clearcoat||0,.38);matObj.clearcoatRoughness=.13}
+
+function buildIntoGroup(fn,x=0,y=0,z=0,scale=1,ry=0){
+  const saved=objectGroup;
+  const g=new THREE.Group();
+  saved.add(g);
+  objectGroup=g;
+  fn();
+  objectGroup=saved;
+  g.position.set(x,y,z);
+  g.scale.setScalar(scale);
+  g.rotation.y=ry;
+  return g;
+}
+function placeGroupOnSurface(g,baseY=0){
+  g.updateWorldMatrix(true,true);
+  const bb=new THREE.Box3().setFromObject(g);
+  if(!bb.isEmpty())g.position.y+=baseY-bb.min.y;
+  return g;
+}
+function buildOnSurface(fn,{x=0,z=0,scale=1,ry=0,baseY=0}={}){
+  const g=buildIntoGroup(fn,x,0,z,scale,ry);
+  placeGroupOnSurface(g,baseY);
+  return g;
+}
+function cloneMaterialSet(material){
+  return Array.isArray(material)?material.map(m=>m.clone()):material.clone();
+}
+function addDie(parent,{size=.82,color=0xf3f4f6,pipColor=0x11161d,x=0,y=.42,z=0,rx=.18,ry=.38,rz=.1}={}){
+  const shell=new THREE.MeshPhysicalMaterial({color,roughness:.12,metalness:0,clearcoat:1,clearcoatRoughness:.05});
+  const pips=new THREE.MeshStandardMaterial({color:pipColor,roughness:.45,metalness:.08});
+  const body=mesh(parent,new RoundedBoxGeometry(size,size,size,6,size*.12),shell,x,y,z);
+  body.rotation.set(rx,ry,rz);
+  const offs=size*.35, depth=size*.485, pr=size*.075;
+  const map={
+    px:[[0,0],[offs,offs],[-offs,-offs],[offs,-offs],[-offs,offs]],
+    nx:[[0,0]],
+    py:[[offs,offs],[-offs,offs],[0,0],[offs,-offs],[-offs,-offs],[offs,0]],
+    ny:[[offs,offs],[-offs,-offs]],
+    pz:[[offs,offs],[-offs,offs],[offs,-offs],[-offs,-offs]],
+    nz:[[offs,offs],[0,offs],[-offs,offs],[offs,-offs],[0,-offs],[-offs,-offs]]
+  };
+  const makePip=(sx,sy,sz,ox,oy)=>{const m=ball(body,pr,pips,sx*depth,sy*depth,sz*depth,1,1,.55); if(Math.abs(sx)>0)m.position.y+=ox, m.position.z+=oy; else if(Math.abs(sy)>0)m.position.x+=ox, m.position.z+=oy; else m.position.x+=ox, m.position.y+=oy;};
+  for(const [face,pts] of Object.entries(map)){
+    const sx=face==='px'?1:face==='nx'?-1:0, sy=face==='py'?1:face==='ny'?-1:0, sz=face==='pz'?1:face==='nz'?-1:0;
+    for(const [ox,oy] of pts) makePip(sx,sy,sz,ox,oy);
+  }
+  return body;
+}
+function addBook(parent,{w=1.0,h=.16,d=.72,color=0x5d717d,page=0xe8dfcf,x=0,y=.08,z=0,ry=0}={}){
+  const cover=new THREE.MeshPhysicalMaterial({color,roughness:.74,metalness:.02,clearcoat:.18});
+  const pages=new THREE.MeshStandardMaterial({color:page,roughness:.92});
+  const g=new THREE.Group(); parent.add(g); g.position.set(x,y,z); g.rotation.y=ry;
+  rounded(g,w,h,d,.04,cover,0,0,0);
+  rounded(g,w*.90,h*.78,d*.87,.025,pages,0,.01,0);
+  const spine=rounded(g,w*.96,h*.82,d*.10,.02,cover,0,0,-d*.39); spine.scale.x=.98;
+  return g;
+}
+function addCandle(parent,{r=.14,h=.52,color=0xf2efe8,x=0,y=.26,z=0,melt=.0}={}){
+  const wax=new THREE.MeshPhysicalMaterial({color,roughness:.58,clearcoat:.18});
+  const wick=new THREE.MeshStandardMaterial({color:0x23201a,roughness:1});
+  const flameMat=new THREE.MeshStandardMaterial({color:0xffd993,emissive:0xff9e29,emissiveIntensity:.65,transparent:true,opacity:.96});
+  cylinder(parent,r,r,h,wax,x,y,z,56,false);
+  if(melt>0) ball(parent,r*.52,wax,x,y+h*.46,z,1.3,.55,1.1);
+  cylinder(parent,.01,.01,.07,wick,x,y+h*.53,z,14,false);
+  const flame=ball(parent,r*.19,flameMat,x,y+h*.64,z,0.65,1.55,0.65);
+  return flame;
+}
+function addFruit(parent,kind='apple',x=0,y=.2,z=0){
+  const mats={apple:new THREE.MeshPhysicalMaterial({color:0xb73930,roughness:.42,clearcoat:.7}),pear:new THREE.MeshPhysicalMaterial({color:0xc7bb49,roughness:.52,clearcoat:.52}),orange:new THREE.MeshPhysicalMaterial({color:0xdb8b2b,roughness:.63,clearcoat:.25}),lemon:new THREE.MeshPhysicalMaterial({color:0xdfcf52,roughness:.56,clearcoat:.22})};
+  const stem=new THREE.MeshStandardMaterial({color:0x5a3a23,roughness:.85});
+  const leafm=new THREE.MeshStandardMaterial({color:0x4e7f41,roughness:.82,side:THREE.DoubleSide});
+  if(kind==='pear'){ball(parent,.15,mats.pear,x,y,z,1.0,1.2,1.0); ball(parent,.11,mats.pear,x,y+.14,z,.95,.95,.95);} 
+  else if(kind==='orange'){ball(parent,.145,mats.orange,x,y,z,1.02,1.02,1.02);} 
+  else if(kind==='lemon'){ball(parent,.14,mats.lemon,x,y,z,1.22,.9,.9);} 
+  else {ball(parent,.15,mats.apple,x,y,z,1.02,1.0,1.02);} 
+  cylinder(parent,.012,.015,.07,stem,x,y+.17,z,12,false);
+  leaf(parent,[x+.02,y+.2,z],-.9,.15,leafm);
+}
+function addBowl(parent,{x=0,y=.18,z=0,color=0xece5db}={}){
+  const bowlMat=new THREE.MeshPhysicalMaterial({color,roughness:.18,clearcoat:1,clearcoatRoughness:.06});
+  lathe(parent,[[0,.0],[.14,0],[.38,.03],[.58,.10],[.72,.20],[.76,.29],[.73,.34],[.62,.31],[.52,.27],[.34,.23],[0,.21]],bowlMat,96).position.set(x,y,z);
+}
+function addTray(parent,{x=0,y=.04,z=0,w=1.5,d=1.02}={}){
+  const wood=new THREE.MeshPhysicalMaterial({color:0x8a633e,roughness:.54,clearcoat:.35});
+  rounded(parent,w,.055,d,.03,wood,x,y,z);
+  for(const sx of [-1,1]) rounded(parent,.08,.08,d*.96,.03,wood,x+sx*(w*.46),y+.04,z);
+  for(const sz of [-1,1]) rounded(parent,w*.96,.08,.08,.03,wood,x,y+.04,z+sz*(d*.46));
+}
+
+function makeBunny(){
+  const grille=mat('Speaker grille fabric',{color:0x485a6c,map:grilleMap,roughness:.94}); const shell=mat('Anodised frame',{color:0x23282d,metalness:.32,roughness:.36}); const wood=mat('Walnut side panels',{color:0x8b623e,map:woodMap,roughness:.56,clearcoat:.18}); const metal=mat('Metal feet and controls',{color:0xb5bcc5,metalness:.96,roughness:.22});
+  bevel(objectGroup,1.55,.88,.76,.14,shell,0,.60,0); bevel(objectGroup,1.44,.76,.60,.10,grille,0,.60,.09); bevel(objectGroup,.11,.76,.64,.03,wood,-.73,.60,0); bevel(objectGroup,.11,.76,.64,.03,wood,.73,.60,0);
+  const ring=mesh(objectGroup,new THREE.TorusGeometry(.17,.017,14,72),metal,0,1.02,.35); ring.rotation.x=Math.PI/2; ball(objectGroup,.10,metal,0,1.02,.35,1,.35,1);
+  for(const s of [-1,1]) for(const z of [-1,1]) bevel(objectGroup,.10,.08,.10,.02,metal,s*.48,.08,z*.22);
+  const badge=bevel(objectGroup,.18,.05,.012,.006,metal,0,.21,.39); const slot=bevel(objectGroup,.58,.04,.012,.006,shell,0,.90,.39);
+}
+function makeFlower(){
+  const clay=mat('Glazed patterned planter',{color:0xf2efe7,map:tileMap,roughness:.24,clearcoat:.92,clearcoatRoughness:.07});const rim=mat('Brass planter rim',{color:0xd9b66f,metalness:.72,roughness:.29});const soil=mat('Natural soil',{color:0x382f27,roughness:1});const stems=mat('Plant stems',{color:0x356d43,roughness:.89});const foliage=mat('Curved leaf surfaces',{color:0x458f51,roughness:.80,side:THREE.DoubleSide});const petals=mat('Flower petals',{color:0xd5637d,roughness:.66,side:THREE.DoubleSide});const seeds=mat('Pollen centres',{color:0xc39335,roughness:.81});
+  profile([[0,.025],[.28,.025],[.36,.04],[.43,.22],[.46,.48],[.51,.77],[.545,.80],[.545,.88],[.495,.90],[.455,.87],[.452,.79],[.407,.49],[.365,.20],[.30,.095],[0,.095]],clay);
+  torus(objectGroup,.509,.022,rim,0,.866,0);cylinder(objectGroup,.437,.437,.018,soil,0,.792,0,96);
+  for(let i=0;i<25;i++){const a=i*2.3999632,rx=Math.cos(a)*(.09+(i%4)*.07),rz=Math.sin(a)*(.09+(i%4)*.07),h=1.22+(i%7)*.12;
+    sweep(objectGroup,[[rx*.3,.799,rz*.3],[rx*.65,.99,rz*.6],[rx, h, rz]],[.015,.012,.008],stems,26,7);
+    const start=[rx*.78,h-.25,rz*.78];
+    const end=[rx*1.38,h-.06+(i%3)*.025,rz*1.38];
+    botanicalBlade(objectGroup,start,end,.082+(i%3)*.016,foliage);
+  }
+  for(let i=0;i<8;i++){const a=2*Math.PI*i/8,xx=.22*Math.cos(a),zz=.22*Math.sin(a),y=1.53+(i%3)*.155;
+    sweep(objectGroup,[[xx*.35,.8,zz*.35],[xx*.7,1.18,zz*.7],[xx,y,zz]],[.018,.012,.010],stems,36,8);
+    for(let j=0;j<9;j++)flowerPetal(objectGroup,[xx,y,zz+.017],j*2*Math.PI/9,.22,.085,petals,-.045);
+    ball(objectGroup,.072,seeds,xx,y,zz+.096,1,1,.40);
+  }
+}
+function makeTeapot(){
+  const enamel=mat('Enamel-coated steel shell',{color:0x355d54,metalness:.18,roughness:.16,clearcoat:1,clearcoatRoughness:.08});const grip=mat('Ebonite handle',{color:0x26292d,roughness:.52});const brass=mat('Brass detailing',{color:0xd4ad66,metalness:1,roughness:.24});
+  profile([[0,.20],[.20,.20],[.35,.24],[.50,.39],[.62,.64],[.67,.88],[.61,1.07],[.49,1.18],[.38,1.25],[.28,1.28],[.24,1.25],[.32,1.16],[.51,.98],[.60,.80],[.58,.62],[.47,.43],[.31,.28],[0,.30]],enamel);
+  sweep(objectGroup,[[.49,.79,0],[.66,.82,0],[.88,.91,0],[1.10,1.10,0],[1.18,1.14,0]],[.17,.155,.12,.085,.07],enamel,100,28);
+  sweep(objectGroup,[[-.43,1.00,0],[-.66,1.08,0],[-.90,.98,0],[-.99,.76,0],[-.82,.46,0],[-.41,.44,0]],[.13,.115,.10,.095,.102,.135],grip,110,26);
+  profile([[0,1.23],[.12,1.23],[.23,1.25],[.32,1.28],[.34,1.30],[.32,1.32],[.23,1.34],[.10,1.36],[0,1.365]],brass); ball(objectGroup,.09,brass,0,1.43,0,1,.82,1); torus(objectGroup,.34,.02,brass,0,1.28,0); torus(objectGroup,.28,.018,brass,0,.24,0)
+}
+function makeVase(){
+  const ceramic=mat('Patterned ceramic body',{color:0xf0ece3,map:floralMap,roughness:.14,clearcoat:1,clearcoatRoughness:.05});const gild=mat('Gilt bands',{color:0xe3bd7d,metalness:.74,roughness:.29});const dark=mat('Inner glaze',{color:0x183347,roughness:.25});
+  profile([[0,.035],[.18,.035],[.31,.078],[.43,.24],[.535,.50],[.54,.75],[.47,.95],[.34,1.18],[.225,1.44],[.215,1.60],[.275,1.67],[.27,1.695],[.235,1.696],[.19,1.648],[.17,1.52],[.20,1.39],[.29,1.14],[.425,.84],[.46,.67],[.45,.51],[.36,.28],[.23,.15],[0,.15]],ceramic);
+  for(const [y,r] of [[.355,.46],[.391,.482],[1.61,.22]])torus(objectGroup,r,.010,gild,0,y,0); torus(objectGroup,.254,.019,gild,0,1.693,0); cylinder(objectGroup,.178,.178,.018,dark,0,1.42,0,80)
+}
+function labelTexture(){const c=document.createElement('canvas');c.width=512;c.height=512;const g=c.getContext('2d');g.fillStyle='#eadac1';g.fillRect(0,0,512,512);g.strokeStyle='#9d7d48';g.lineWidth=10;g.strokeRect(20,20,472,472);g.textAlign='center';g.fillStyle='#634d38';g.font='bold 48px Georgia';g.fillText('ATELIER',256,165);g.font='38px Georgia';g.fillText('No. 05',256,254);g.font='27px Georgia';g.fillText('EAU DE PARFUM',256,318);g.font='24px Georgia';g.fillText('PARIS',256,378);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
+const labelMap=labelTexture();
+function makePerfume(){const glass=mat('Thick transparent glass',{color:0xe4f7fc,roughness:.045,transmission:.98,thickness:.38,ior:1.48,side:THREE.DoubleSide});const fragrance=mat('Golden liquid',{color:0xcf984a,roughness:.12,transmission:.50,thickness:.26,ior:1.39});const brass=mat('Brushed gold atomizer',{color:0xcda768,metalness:1,roughness:.24});const paper=mat('Printed artisan label',{color:0xffffff,map:labelMap,roughness:.77});
+  bevel(objectGroup,1.03,1.22,.54,.18,glass,0,.66,0);
+  bevel(objectGroup,.90,.68,.385,.105,fragrance,0,.39,0);
+  bevel(objectGroup,.56,.15,.56,.052,brass,0,1.286,0);
+  cylinder(objectGroup,.13,.13,.14,brass,0,1.41,0,60);
+  bevel(objectGroup,.34,.27,.33,.05,brass,0,1.59,0);
+  const paperFront=mesh(objectGroup,new THREE.PlaneGeometry(.62,.52),paper,0,.67,.281);paperFront.position.z=.275;
+}
+function makeTrophy(){const gold=mat('Polished trophy metal',{color:0xdabb70,metalness:1,roughness:.12});const silver=mat('Contrasting silver trims',{color:0xd6e1e5,metalness:1,roughness:.18});const marble=mat('Black stone base',{color:0x222a36,roughness:.36,metalness:.06});
+  profile([[0,.70],[.18,.70],[.34,.83],[.47,1.04],[.55,1.32],[.57,1.66],[.59,1.74],[.55,1.80],[.51,1.78],[.515,1.70],[.49,1.39],[.41,1.15],[.29,.94],[0,.85]],gold);
+  for(const s of [-1,1])sweep(objectGroup,[[s*.54,1.7,0],[s*.76,1.83,0],[s*.97,1.7,0],[s*.96,1.41,0],[s*.75,1.18,0],[s*.47,1.17,0]],[.088,.080,.070,.065,.077,.097],gold,108,20);
+  torus(objectGroup,.562,.024,silver,0,1.772,0);
+  profile([[0,.12],[.45,.12],[.43,.18],[.29,.18],[.26,.27],[.17,.31],[.14,.73],[.21,.77],[0,.77]],gold);
+  cylinder(objectGroup,.46,.52,.15,marble,0,.093,0,80);cylinder(objectGroup,.33,.34,.045,silver,0,.193,0,80)
+}
+function leatherTexture(){const c=document.createElement('canvas');c.width=c.height=512;let ctx=c.getContext('2d');ctx.fillStyle='#dddde2';ctx.fillRect(0,0,512,512);let s=143;const rng=()=>((s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296);for(let i=0;i<60000;i++){const n=rng()*.22;ctx.fillStyle=`rgba(60,56,50,${n.toFixed(3)})`;ctx.fillRect(rng()*512,rng()*512,1+rng()*2.3,1+rng()*2.3)}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(2,1);t.colorSpace=THREE.SRGBColorSpace;return t}
+const leatherMap=leatherTexture();
+
+function wovenTexture(){const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d');g.fillStyle='#b58757';g.fillRect(0,0,512,512);for(let y=0;y<512;y+=32){for(let x=0;x<512;x+=32){g.fillStyle=((x+y)/32)%2?'#c69967':'#9d7148';g.fillRect(x,y,32,32);g.strokeStyle='rgba(255,255,255,.12)';g.lineWidth=3;g.beginPath();g.moveTo(x,y+16);g.bezierCurveTo(x+8,y+6,x+24,y+26,x+32,y+16);g.stroke();g.beginPath();g.moveTo(x+16,y);g.bezierCurveTo(x+6,y+8,x+26,y+24,x+16,y+32);g.stroke()}}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(2,2);t.colorSpace=THREE.SRGBColorSpace;return t}
+function fabricTexture(){const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d');g.fillStyle='#334d66';g.fillRect(0,0,512,512);for(let i=0;i<512;i+=8){g.fillStyle=i%16===0?'rgba(255,255,255,.07)':'rgba(0,0,0,.06)';g.fillRect(i,0,2,512);g.fillRect(0,i,512,2)}for(let i=0;i<1800;i++){g.fillStyle=Math.random()>.5?'rgba(255,255,255,.03)':'rgba(0,0,0,.03)';g.fillRect(Math.random()*512,Math.random()*512,1+Math.random()*2,1+Math.random()*2)}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(2,2);t.colorSpace=THREE.SRGBColorSpace;return t}
+function tilePatternTexture(){const c=document.createElement('canvas');c.width=c.height=1024;const g=c.getContext('2d');g.fillStyle='#f0eadb';g.fillRect(0,0,1024,1024);for(let y=0;y<8;y++)for(let x=0;x<8;x++){const ox=x*128,oy=y*128;g.strokeStyle='#2b4b77';g.lineWidth=5;g.strokeRect(ox+8,oy+8,112,112);g.fillStyle=(x+y)%2?'#2f5e94':'#7f9cc2';g.beginPath();g.moveTo(ox+64,oy+22);g.lineTo(ox+106,oy+64);g.lineTo(ox+64,oy+106);g.lineTo(ox+22,oy+64);g.closePath();g.fill();g.fillStyle='#d47f5b';g.beginPath();g.arc(ox+64,oy+64,18,0,Math.PI*2);g.fill()}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(1.8,1.8);t.colorSpace=THREE.SRGBColorSpace;return t}
+function stripePatternTexture(){const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d');g.fillStyle='#f3efe7';g.fillRect(0,0,512,512);const cols=['#264e78','#c56d4a','#d9b35f','#264e78'];for(let i=0;i<cols.length;i++){g.fillStyle=cols[i];g.fillRect(0,40+i*90,512,38)}for(let i=0;i<14;i++){g.fillStyle='rgba(255,255,255,.07)';g.fillRect(0,i*36,512,2)}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(1,1);t.colorSpace=THREE.SRGBColorSpace;return t}
+function floralPatternTexture(){const c=document.createElement('canvas');c.width=c.height=1024;const g=c.getContext('2d');g.fillStyle='#f6f2e8';g.fillRect(0,0,1024,1024);for(let y=0;y<4;y++)for(let x=0;x<4;x++){const cx=x*256+128,cy=y*256+128;for(let i=0;i<8;i++){const a=i*Math.PI/4;g.fillStyle=i%2?'#c45f46':'#456a9c';g.beginPath();g.ellipse(cx+Math.cos(a)*46,cy+Math.sin(a)*46,34,20,a,0,Math.PI*2);g.fill()}g.fillStyle='#d6aa4a';g.beginPath();g.arc(cx,cy,24,0,Math.PI*2);g.fill();g.strokeStyle='rgba(70,70,70,.08)';g.lineWidth=3;g.strokeRect(x*256+12,y*256+12,232,232)}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(1.4,1.4);t.colorSpace=THREE.SRGBColorSpace;return t}
+const wovenMap=wovenTexture(),fabricMap=fabricTexture(),tileMap=tilePatternTexture(),stripeMap=stripePatternTexture(),floralMap=floralPatternTexture();
+
+function grilleTexture(){const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d');g.fillStyle='#3a4958';g.fillRect(0,0,512,512);for(let y=8;y<512;y+=18){for(let x=8;x<512;x+=18){g.fillStyle='rgba(18,22,26,.85)';g.beginPath();g.arc(x,y,4.7,0,Math.PI*2);g.fill();g.fillStyle='rgba(110,130,150,.08)';g.beginPath();g.arc(x-1.2,y-1.2,1.4,0,Math.PI*2);g.fill()}}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(1.4,1.4);t.colorSpace=THREE.SRGBColorSpace;return t}
+function fishScaleTexture(){const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d');g.fillStyle='#f0f3f6';g.fillRect(0,0,512,512);g.strokeStyle='rgba(120,140,160,.24)';g.lineWidth=1.2;for(let y=0;y<16;y++){for(let x=0;x<14;x++){const cx=x*42+(y%2)*21,cy=y*30+18;g.beginPath();g.arc(cx,cy,16,Math.PI,0);g.stroke()}}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(2.1,2.1);t.colorSpace=THREE.SRGBColorSpace;return t}
+const grilleMap=grilleTexture(),fishScaleMap=fishScaleTexture();
+function addFish(parent,{x=0,y=1,z=0,scale=.2,body=0xf28c3c,accent=0xffffff,ry=0}={}){const g=new THREE.Group();parent.add(g);g.position.set(x,y,z);g.scale.setScalar(scale);g.rotation.y=ry;const bodyMat=new THREE.MeshPhysicalMaterial({color:body,map:fishScaleMap,roughness:.38,clearcoat:.55});const finMat=new THREE.MeshPhysicalMaterial({color:accent,roughness:.52,clearcoat:.24,transparent:true,opacity:.95,side:THREE.DoubleSide});const eyeWhite=new THREE.MeshStandardMaterial({color:0xf6f8fa,roughness:.62});const pupil=new THREE.MeshStandardMaterial({color:0x101214,roughness:.15}); ball(g,.42,bodyMat,-.02,0,0,1.7,.85,.62); ball(g,.16,bodyMat,.46,.02,0,.95,.72,.58); const tail=mesh(g,new THREE.ConeGeometry(.22,.36,22,1),finMat,-.82,.01,0); tail.rotation.z=-Math.PI/2; tail.scale.set(.95,1.1,.28); const dorsal=mesh(g,new THREE.ConeGeometry(.12,.26,16,1),finMat,-.10,.23,0); dorsal.rotation.z=Math.PI; dorsal.scale.set(1,.92,.26); const pelvic=mesh(g,new THREE.ConeGeometry(.10,.20,14,1),finMat,.02,-.18,0); pelvic.rotation.z=.2; pelvic.scale.set(1,.95,.26); const p1=mesh(g,new THREE.ConeGeometry(.10,.19,14,1),finMat,.11,-.03,.18); p1.rotation.z=.82; p1.scale.set(1,.95,.24); const p2=mesh(g,new THREE.ConeGeometry(.10,.19,14,1),finMat,.11,-.03,-.18); p2.rotation.z=.82; p2.scale.set(1,.95,.24); const stripe=ball(g,.07,finMat,.02,.02,0,1.0,1.6,.92); stripe.scale.set(.9,1.4,.75); const eye1=ball(g,.048,eyeWhite,.53,.08,.16,1,1,.85); const eye2=ball(g,.048,eyeWhite,.53,.08,-.16,1,1,.85); ball(g,.024,pupil,.56,.08,.17); ball(g,.024,pupil,.56,.08,-.17); return g}
+
+function makeCamera(){const leather=mat('Leatherette camera chassis',{color:0x303239,map:leatherMap,roughness:.86});const alloy=mat('Machined metal edges',{color:0xa7b1b8,metalness:.91,roughness:.29});const optic=mat('Coated optical glass',{color:0x1e344a,metalness:.1,roughness:.04,clearcoat:1});const grips=mat('Black ridged lens rings',{color:0x1e2227,roughness:.63});
+  bevel(objectGroup,1.48,.91,.60,.10,leather,0,.90,0);bevel(objectGroup,1.49,.20,.60,.04,alloy,0,1.315,0);bevel(objectGroup,.63,.25,.43,.075,alloy,0,1.49,-.015);
+  // Coaxial optical components — Z axis points towards the camera viewer.
+  for(const [radial,z,len,m] of [[.37,.38,.22,alloy],[.335,.49,.21,grips],[.292,.61,.12,alloy],[.24,.695,.025,optic]]){const q=cylinder(objectGroup,radial,radial,len,m,0,.92,z,96);q.rotation.x=Math.PI/2}
+  for(const [r,z] of [[.37,.495],[.33,.59],[.285,.685]]){const ring=mesh(objectGroup,new THREE.TorusGeometry(r,.013,12,100),alloy,0,.92,z);ring.rotation.z=0}
+  for(let i=0;i<48;i++){const a=i*Math.PI*2/48;const q=bevel(objectGroup,.012,.06,.018,.004,alloy,Math.cos(a)*.332,.92+Math.sin(a)*.332,.582);q.rotation.z=-a}
+  for(const x of [-.54,.54])cylinder(objectGroup,.075,.075,.06,alloy,x,1.46,-.1,64);bevel(objectGroup,.29,.12,.035,.015,grips,.49,1.04,.319)
+}
+function makeOwl(){const wicker=mat('Braided basket body',{color:0xb78655,map:wovenMap,roughness:.72,clearcoat:.08});const liner=mat('Patterned cloth liner',{color:0xf1e3cf,map:stripeMap,roughness:.78});const stitch=mat('Leather side tabs',{color:0x8f633f,roughness:.72});
+  profile([[0,.06],[.24,.06],[.42,.11],[.60,.26],[.72,.52],[.74,.86],[.70,1.03],[.61,1.10],[.50,1.12],[.45,1.08],[.40,.98],[.38,.76],[.32,.51],[.22,.30],[0,.22]],wicker);
+  torus(objectGroup,.70,.03,wicker,0,1.10,0); cylinder(objectGroup,.56,.56,.18,liner,0,1.02,0,84,false); for(const s of [-1,1])bevel(objectGroup,.11,.20,.05,.02,stitch,s*.66,.77,.0)
+}
+function makeCrystal(){const gems=mat('Cut prismatic crystal',{color:0xc2f0fa,roughness:.035,transmission:.94,thickness:.75,ior:1.54,flatShading:true,side:THREE.DoubleSide});const mount=mat('Metal setting',{color:0xb8a1db,metalness:.86,roughness:.22});
+  const ringN=10,positions=[],faces=[];const rings=[[.12,0],[.50,.42],[.69,.53],[1.44,.59],[1.72,.0]]; // ring entries are [height,radius]
+  for(let i=0;i<rings.length;i++)for(let j=0;j<ringN;j++){const a=2*Math.PI*j/ringN+(i%2)*Math.PI/ringN;positions.push(Math.cos(a)*rings[i][1],rings[i][0],Math.sin(a)*rings[i][1])}
+  for(let i=0;i<rings.length-1;i++)for(let j=0;j<ringN;j++){const a=i*ringN+j,b=i*ringN+(j+1)%ringN,c=(i+1)*ringN+j,d=(i+1)*ringN+(j+1)%ringN;faces.push(a,c,b,b,c,d)}
+  const shape=new THREE.BufferGeometry();shape.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));shape.setIndex(faces);const flat=shape.toNonIndexed();flat.computeVertexNormals();mesh(objectGroup,flat,gems);
+  cylinder(objectGroup,.30,.37,.11,mount,0,.065,0,80);torus(objectGroup,.32,.023,mount,0,.118,0)
+}
+function makeKnot(){const chrome=mat('One-piece polished chrome',{color:0xd5e1e8,metalness:1,roughness:.075});const copper=mat('Oxidised copper plinth',{color:0xaf7651,metalness:.85,roughness:.29});mesh(objectGroup,new THREE.TorusKnotGeometry(.57,.155,560,44,2,5),chrome,0,.94,0);profile([[0,.035],[.47,.035],[.50,.085],[.44,.145],[.28,.165],[0,.165]],copper);cylinder(objectGroup,.14,.18,.20,copper,0,.24,0,48)}
+function makeCactus(){const pot=mat('Glazed terracotta pot',{color:0xc78259,roughness:.31,clearcoat:.65});const skin=mat('Continuous ribbed cactus body',{color:0x3a8662,roughness:.76});const needle=mat('Fine pale spines',{color:0xe9d8ae,roughness:.85});const earth=mat('Potting medium',{color:0x423929,roughness:1});
+  profile([[0,.03],[.31,.03],[.39,.075],[.46,.25],[.49,.60],[.53,.68],[.53,.745],[.45,.755],[.424,.69],[.40,.43],[.34,.15],[0,.15]],pot);torus(objectGroup,.493,.027,pot,0,.72,0);cylinder(objectGroup,.426,.426,.015,earth,0,.695,0,80);
+  function sdf(x,y,z){let d=sdEll(x,y,z,0,1.25,0,.296,.60,.295);for(let s of [-1,1]){d=smoothMin(d,sdEll(x,y,z,s*.385,1.17,0,.15,.38,.15,-s*.35),.16);d=smoothMin(d,sdEll(x,y,z,s*.475,1.39,0,.145,.25,.15,s*.07),.18)}d+=.012*Math.cos(Math.atan2(z,x)*11);return d}
+  solidSculpt(sdf,[-.75,.75,.65,1.98,-.55,.55],[60,80,45],skin);
+  for(let i=0;i<16;i++){const a=i*2*Math.PI/16;for(let j=0;j<7;j++){const y=.81+j*.155;const r=.29*Math.sqrt(Math.max(.06,1-Math.pow((y-1.25)/.61,2)));const px=Math.cos(a)*r,pz=Math.sin(a)*r;for(let l=-1;l<=1;l++){const theta=a+.17*l;const tip=[px+Math.cos(theta)*.065,y+.04*l,pz+Math.sin(theta)*.065];sweep(objectGroup,[[px,y,pz],tip],[.005,.001],needle,6,4)}}}
+}
+function makeMirror(){const silver=mat('Optical mirror finish',{color:0xecf4fa,metalness:1,roughness:.018});const stand=mat('Turned graphite stand',{color:0x272d34,roughness:.36,metalness:.36});ball(objectGroup,.68,silver,0,.92,0);profile([[0,.02],[.32,.02],[.33,.08],[.19,.12],[.15,.22],[.105,.34],[.08,.43],[0,.43]],stand)}
+// New subjects complement the existing material evaluation set.
+function makeCoffee(){const shell=mat('Striped enamel mug',{color:0xf2efe7,map:stripeMap,roughness:.22,metalness:.18,clearcoat:.92,clearcoatRoughness:.08});const inner=mat('Coffee surface',{color:0x4c3224,roughness:.27,clearcoat:.28});const rim=mat('Dark enamel rim',{color:0x25415e,roughness:.28,metalness:.2});
+  profile([[0,.06],[.25,.06],[.37,.10],[.48,.30],[.52,.63],[.49,.94],[.48,1.02],[.45,1.038],[.41,1.013],[.43,.82],[.45,.64],[.405,.35],[.30,.18],[0,.18]],shell);
+  sweep(objectGroup,[[.40,.77,0],[.58,.86,0],[.80,.74,0],[.84,.46,0],[.62,.25,0],[.37,.35,0]],[.095,.086,.080,.080,.086,.097],rim,100,22);torus(objectGroup,.46,.018,rim,0,1.022,0); cylinder(objectGroup,.425,.425,.017,inner,0,.72,0,84)
+}
+function makeGoblet(){const glass=mat('One-piece blown glass',{color:0xe7f6fb,roughness:.025,transmission:1,thickness:.14,ior:1.52,side:THREE.DoubleSide});const wine=mat('Ruby wine',{color:0x7f1c38,roughness:.095,transmission:.29,thickness:.23});
+  profile([[0,.025],[.31,.025],[.45,.035],[.46,.055],[.37,.072],[.12,.095],[.045,.16],[.05,.63],[.095,.72],[.27,.82],[.41,1.04],[.48,1.28],[.49,1.49],[.478,1.69],[.460,1.72],[.444,1.697],[.454,1.46],[.45,1.28],[.383,1.07],[.24,.87],[.072,.79],[.035,.71],[.029,.14],[0,.102]],glass);
+  torus(objectGroup,.469,.012,glass,0,1.713,0);
+  // Stable horizontal wine meniscus, bounded by the interior bowl.
+  profile([[0,.795],[.06,.805],[.21,.875],[.302,1.01],[.37,1.145],[0,1.145]],wine)
+}
+function watchFace(){const c=document.createElement('canvas');c.width=c.height=1024;const g=c.getContext('2d');g.fillStyle='#efe6d2';g.fillRect(0,0,1024,1024);const cx=512,cy=512;g.strokeStyle='#584a39';g.fillStyle='#584a39';for(let i=0;i<60;i++){let a=i*2*Math.PI/60-Math.PI/2,r=i%5===0?360:373;g.lineWidth=i%5===0?7:2;g.beginPath();g.moveTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);g.lineTo(cx+Math.cos(a)*396,cy+Math.sin(a)*396);g.stroke()}g.font='bold 52px Georgia';g.textAlign='center';for(let i=1;i<=12;i++){const a=i*Math.PI/6-Math.PI/2;g.fillText(String(i),cx+Math.cos(a)*295,cy+Math.sin(a)*295+19)}g.font='bold 46px Georgia';g.fillText('CHRONOS',cx,355);g.font='27px Georgia';g.fillText('AUTOMATIC',cx,675);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
+const watchMap=watchFace();
+function makePocketWatch(){const steel=mat('Polished brass case',{color:0xd9b66c,metalness:1,roughness:.16});const ivory=mat('Ivory clock face',{color:0xffffff,map:watchMap,roughness:.81});const hand=mat('Blue-steel hands',{color:0x22394f,metalness:.78,roughness:.22});const crystal=mat('Convex glass cover',{color:0xdbeefb,transmission:.88,thickness:.07,ior:1.47,roughness:.035});
+  // Watch face faces +Z and the whole circular case remains joined.
+  const q=cylinder(objectGroup,.67,.67,.18,steel,0,.93,0,128);q.rotation.x=Math.PI/2;
+  const dial=mesh(objectGroup,new THREE.CircleGeometry(.604,128),ivory,0,.93,.095);dial.rotation.z=0;
+  const border=mesh(objectGroup,new THREE.TorusGeometry(.634,.038,20,128),steel,0,.93,.105);
+  const glassCover=ball(objectGroup,.62,crystal,0,.93,.135,1,1,.08);
+  const centre=ball(objectGroup,.045,hand,0,.93,.13,1,1,.30);
+  for(const [theta,len,width]of [[-1.1,.35,.028],[1.55,.49,.018]]){const q=bevel(objectGroup,width,len,.015,.007,hand,Math.sin(theta)*len*.40,.93+Math.cos(theta)*len*.4,.132);q.rotation.z=-theta}
+  const crown=cylinder(objectGroup,.14,.14,.16,steel,0,1.70,0,40);crown.rotation.z=Math.PI/2;
+  mesh(objectGroup,new THREE.TorusGeometry(.123,.038,12,48),steel,0,1.81,0)
+}
+function makeLantern(){const brass=mat('Antique brushed brass',{color:0xb99055,metalness:.92,roughness:.28});const glass=mat('Tempered lantern glass',{color:0xe5f6fa,transmission:.86,thickness:.11,ior:1.47,roughness:.08,side:THREE.DoubleSide});const wick=mat('Warm internal burner',{color:0xf1d5a1,roughness:.45,emissive:0xc08b40,emissiveIntensity:.24});
+  profile([[0,.06],[.31,.06],[.42,.10],[.44,.21],[.34,.30],[.30,.36],[0,.36]],brass);
+  cylinder(objectGroup,.335,.335,.025,brass,0,1.37,0,12);
+  // Connected vertical cage and glass panels.
+  for(let i=0;i<8;i++){const a=i*Math.PI/4;const x=Math.cos(a)*.34,z=Math.sin(a)*.34;sweep(objectGroup,[[x,.29,z],[x,.55,z],[x,1.18,z],[x,1.40,z]],[.023,.022,.022,.028],brass,22,9)}
+  cylinder(objectGroup,.298,.298,1.06,glass,0,.84,0,84,true);
+  profile([[0,1.36],[.35,1.36],[.36,1.45],[.25,1.55],[.22,1.72],[.16,1.83],[0,1.83]],brass);
+  torus(objectGroup,.195,.055,brass,0,1.80,0);
+  sweep(objectGroup,[[-.23,1.75,0],[-.27,2.03,0],[0,2.16,0],[.27,2.03,0],[.23,1.75,0]],[.035,.034,.034,.034,.035],brass,65,14);
+  cylinder(objectGroup,.11,.14,.42,wick,0,.53,0,24)
+}
+function makeElephant(){const body=mat('Patterned textile body',{color:0xe7dbc8,map:tileMap,roughness:.58,clearcoat:.12});const trim=mat('Dark leather trim',{color:0x5d4634,roughness:.71,map:leatherMap});const brass=mat('Brass latch',{color:0xca9e58,metalness:.95,roughness:.24});const lining=mat('Suede lining',{color:0x7f5b4c,roughness:.9});
+  bevel(objectGroup,1.34,.86,.94,.09,body,0,.48,0); bevel(objectGroup,1.30,.18,.90,.06,trim,0,.07,0); bevel(objectGroup,1.18,.42,.78,.06,lining,0,.62,0); for(const s of [-1,1]){bevel(objectGroup,.08,.82,.08,.02,trim,s*.60,.47,0); bevel(objectGroup,1.20,.08,.08,.02,trim,0,.89,s*.43)}; bevel(objectGroup,.19,.15,.05,.015,brass,0,.50,.49); for(const s of [-1,1])bevel(objectGroup,.05,.20,.05,.01,brass,s*.38,.50,.49)
+}
+function makeHeadphones(){const alloy=mat('Satin metallic headband',{color:0x768a9d,metalness:.88,roughness:.25});const fabric=mat('Padded leather headband',{color:0x2d3340,map:leatherMap,roughness:.78});const cups=mat('Anodised earcups',{color:0x3a566c,metalness:.7,roughness:.30});const cushions=mat('Soft memory foam ear pads',{color:0x181b24,roughness:.93});
+  // Continuous overhead U-band, continuous contact at both cup hinges.
+  const path=[];for(let i=0;i<=35;i++){const a=i*Math.PI/35;path.push([.59*Math.cos(a),.85+.70*Math.sin(a),0])}
+  sweep(objectGroup,path,Array(36).fill(.066),alloy,140,18);
+  const padPath=[];for(let i=0;i<=30;i++){const a=.25+i*(Math.PI-.5)/30;padPath.push([.59*Math.cos(a),.85+.70*Math.sin(a),-.018])}sweep(objectGroup,padPath,Array(31).fill(.084),fabric,90,16);
+  for(const s of [-1,1]){const hinge=bevel(objectGroup,.16,.39,.15,.045,alloy,s*.59,.69,0);const housing=bevel(objectGroup,.30,.49,.38,.13,cups,s*.60,.45,0);housing.rotation.z=-s*.07;bevel(objectGroup,.26,.39,.32,.11,cushions,s*.60,.45,.115)}
+}
+function makeChess(){
+  const marble=mat('Continuous carved alabaster bishop',{color:0xe8e3d8,roughness:.22,clearcoat:.62,clearcoatRoughness:.12});
+  const gold=mat('Polished narrow inlay',{color:0xc5a265,roughness:.24,metalness:.88});
+  // Monotonic centre-to-edge shape. The entire bishop body, base, collar and head
+  // are one shared surface, not stacked primitive spheres or angular cylinders.
+  const section=[[0,.035],[.28,.035],[.43,.045],[.49,.076],[.50,.106],[.46,.147],
+    [.39,.19],[.33,.27],[.285,.42],[.252,.58],[.225,.75],[.237,.88],
+    [.284,.99],[.32,1.10],[.34,1.22],[.30,1.34],[.235,1.445],[.14,1.53],[0,1.565]];
+  const dense=softenedSection(section,8).sort((a,b)=>a.y-b.y);
+  function radiusAt(y){
+    if(y<=dense[0].y)return dense[0].x;
+    if(y>=dense[dense.length-1].y)return dense[dense.length-1].x;
+    let lo=0,hi=dense.length-1;
+    while(lo+1<hi){const mid=(lo+hi)>>1;if(dense[mid].y<y)lo=mid;else hi=mid}
+    const aa=dense[lo],bb=dense[hi],f=(y-aa.y)/Math.max(1e-6,bb.y-aa.y);
+    return THREE.MathUtils.lerp(aa.x,bb.x,Math.max(0,Math.min(1,f)));
+  }
+  function sculpture(x,y,z){
+    const yy=THREE.MathUtils.clamp(y,.035,1.565);
+    const body=Math.max(Math.hypot(x,z)-radiusAt(yy),.035-y,y-1.565);
+    // A diagonal 3D recess carved into the front of the bishop mitre.
+    const cut=Math.max(Math.abs(y-(1.238-.42*x))-.044,Math.abs(x)-.36,Math.abs(z-.31)-.26);
+    return Math.max(body,-cut);
+  }
+  solidSculpt(sculpture,[-.61,.61,-.025,1.66,-.61,.61],[72,118,72],marble);
+  torus(objectGroup,.365,.017,gold,0,.192,0);
+  torus(objectGroup,.236,.014,gold,0,.843,0);
+  ball(objectGroup,.096,marble,0,1.630,0);
+}
+
+function makeWaterGlobe(){const glass=mat('Globe glass shell',{color:0xe5f8fb,roughness:.03,transmission:.98,thickness:.22,ior:1.48,side:THREE.DoubleSide});const water=mat('Water volume',{color:0xb8e4f0,roughness:.05,transmission:.88,thickness:.22,ior:1.34,side:THREE.DoubleSide});const walnut=mat('Turned walnut base',{color:0x7a5537,map:woodMap,roughness:.47,clearcoat:.24});const gravel=mat('Gravel bed',{color:0xdac9ad,roughness:.93});const weed=mat('Aquatic plants',{color:0x4a8a62,roughness:.84});
+  profile([[0,.02],[.48,.02],[.62,.08],[.74,.19],[.80,.36],[.72,.47],[.58,.53],[0,.53]],walnut); ball(objectGroup,.84,glass,0,1.34,0,1,1,1); ball(objectGroup,.77,water,0,1.22,0,1,0.84,1); cylinder(objectGroup,.47,.55,.11,gravel,0,.69,0,60,false);
+  for(let i=0;i<7;i++){const x=-.26+i*.09; const h=.80+Math.sin(i*.8)*.08; sweep(objectGroup,[[x,.70,-.04],[x+.03,.88,.00],[x+.06,h,.04]],[.012,.010,.006],weed,18,6)}
+  addFish(objectGroup,{x:-.18,y:1.18,z:.12,scale:.18,body:0xf08a2b,accent:0xf8f4ea,ry:.5}); addFish(objectGroup,{x:.18,y:1.05,z:-.10,scale:.17,body:0x4b87b9,accent:0xd7e7f2,ry:-.8}); addFish(objectGroup,{x:.05,y:1.32,z:.02,scale:.13,body:0xe1c14c,accent:0x2b4866,ry:2.4});
+  const flakeMat=mat('Suspended flakes and bubbles',{color:0xf7fbff,roughness:.15,transmission:.22,ior:1.33});
+  for(let i=0;i<52;i++){const a=i*2.39996,r=.06+(i%11)*.055,y=.82+(i%15)*.035,z=Math.sin(a)*r,x=Math.cos(a)*r; ball(objectGroup,.008+(i%4)*.004,flakeMat,x,y,z,.8,1.25,.8)}
+}
+function makeDicePair(){addDie(objectGroup,{size:.90,color:0xf0f2f6,x:-.36,y:.46,z:0,rx:.2,ry:.65,rz:.08}); addDie(objectGroup,{size:.84,color:0xb01e28,pipColor:0xf5f6f7,x:.41,y:.42,z:.10,rx:-.12,ry:-.38,rz:.16});}
+function makeDiceTrio(){addDie(objectGroup,{size:.88,color:0xf2f4f7,x:-.52,y:.44,z:.08,rx:.18,ry:.6,rz:.08}); addDie(objectGroup,{size:.78,color:0x0e5aa7,pipColor:0xffffff,x:.22,y:.39,z:-.24,rx:.08,ry:-.3,rz:-.12}); addDie(objectGroup,{size:.72,color:0xbf972f,pipColor:0x1a1612,x:.62,y:.72,z:.19,rx:.52,ry:.2,rz:.48});}
+function makeHourglass(){const brass=mat('Brass frame',{color:0xc6a166,metalness:.92,roughness:.22});const glass=mat('Hourglass glass',{color:0xe6f7fb,roughness:.05,transmission:.95,thickness:.08,ior:1.47,side:THREE.DoubleSide});const sand=mat('Fine sand',{color:0xd8c083,roughness:.92});
+  cylinder(objectGroup,.53,.58,.08,brass,0,.04,0,64,false); cylinder(objectGroup,.46,.52,.08,brass,0,1.66,0,64,false);
+  for(let a=0;a<4;a++){const t=a*Math.PI/2+Math.PI/4; sweep(objectGroup,[[Math.cos(t)*.40,.08,Math.sin(t)*.40],[Math.cos(t)*.34,.84,Math.sin(t)*.34],[Math.cos(t)*.40,1.62,Math.sin(t)*.40]],[.04,.03,.04],brass,46,12)}
+  const top=lathe(objectGroup,[[0,0],[.42,0],[.36,.09],[.22,.36],[.08,.66],[0,.72]],glass,90); top.position.y=.90; const bot=lathe(objectGroup,[[0,.72],[.08,.66],[.22,.36],[.36,.09],[.42,0],[0,0]],glass,90); bot.position.y=.18;
+  cylinder(objectGroup,.27,.06,.34,sand,0,1.18,0,52,false); cylinder(objectGroup,.30,.08,.36,sand,0,.61,0,52,false); sweep(objectGroup,[[0,1.03,0],[0,.97,0]],[.01,.01],sand,5,6);
+}
+function makeFruitBowl(){const plate=mat('Glazed fruit plate',{color:0xf1ebe1,roughness:.18,clearcoat:1,clearcoatRoughness:.05}); const accent=mat('Plate rim accent',{color:0xd1ba8c,roughness:.30,metalness:.08}); lathe(objectGroup,[[0,0],[.24,0],[.56,.03],[.82,.08],[.94,.13],[.92,.17],[.70,.16],[.34,.14],[0,.12]],plate,96).position.y=.03; torus(objectGroup,.86,.012,accent,0,.18,0); addFruit(objectGroup,'apple',-.30,.24,.10); addFruit(objectGroup,'pear',.00,.28,-.14); addFruit(objectGroup,'orange',.28,.22,.12); addFruit(objectGroup,'lemon',-.02,.18,.28); addFruit(objectGroup,'apple',.16,.40,-.02); addFruit(objectGroup,'orange',-.12,.38,-.08);}
+function makeTeaSet(){buildOnSurface(makeTeapot,{x:0.00,z:-.03,scale:.74,ry:.10,baseY:.01}); buildOnSurface(makeCoffee,{x:-1.18,z:.56,scale:.62,ry:.22,baseY:.01}); buildOnSurface(makeCoffee,{x:1.14,z:-.46,scale:.62,ry:-.28,baseY:.01});} 
+function makePerfumeDuo(){buildIntoGroup(makePerfume,-.34,0,0,.92,0); buildIntoGroup(makeGoblet,.52,0,.05,.86,.0);} 
+function makeSucculentTrio(){buildIntoGroup(makeCactus,-.84,0,.08,.62,.1); buildIntoGroup(makeFlower,0,0,-.02,.55,0); buildIntoGroup(makeCactus,.86,0,.06,.54,-.16);} 
+function makeBookStack(){addBook(objectGroup,{w:1.42,h:.16,d:.88,color:0x435362,y:.08,ry:.03}); addBook(objectGroup,{w:1.34,h:.16,d:.83,color:0x7e4f48,y:.24,ry:-.04}); addBook(objectGroup,{w:1.26,h:.16,d:.78,color:0x64734d,y:.40,ry:.02}); buildIntoGroup(makePocketWatch,.26,.35,.14,.40,-.3);} 
+function makeCandleTrio(){addTray(objectGroup,{w:1.92,d:1.18}); addCandle(objectGroup,{x:-.45,y:.34,h:.64,r:.16,melt:.2,color:0xf4f0e7}); addCandle(objectGroup,{x:.00,y:.40,h:.78,r:.14,melt:.0,color:0xf1ece2}); addCandle(objectGroup,{x:.42,y:.30,h:.54,r:.13,melt:.15,color:0xefe6d8});}
+function makeVasePair(){buildOnSurface(makeVase,{x:-.26,z:.02,scale:.88,ry:.08,baseY:.01}); buildOnSurface(makeVase,{x:.88,z:-.12,scale:.46,ry:-.22,baseY:.01});} 
+function makeStudySet(){addBook(objectGroup,{w:1.55,h:.15,d:1.00,color:0x5a463c,y:.08,ry:.02}); addBook(objectGroup,{w:1.42,h:.15,d:.90,color:0x334a61,y:.23,ry:-.04}); buildOnSurface(makeCamera,{x:-.22,z:.12,scale:.56,ry:.22,baseY:.315}); buildOnSurface(makePocketWatch,{x:.56,z:-.18,scale:.34,ry:-.42,baseY:.315});} 
+function makeDecanter(){
+  const glass=mat('Blown glass decanter wall',{color:0xe3f4f9,roughness:.025,transmission:.98,thickness:.12,ior:1.47,side:THREE.DoubleSide});
+  const liquid=mat('Amber liquid',{color:0xc98743,roughness:.065,transmission:.38,thickness:.24,ior:1.38});
+  const metal=mat('Polished silver rim',{color:0xdde5e9,metalness:1,roughness:.12});
+  profile([[0,.04],[.20,.04],[.35,.065],[.47,.15],[.54,.33],[.555,.58],
+   [.49,.82],[.37,1.04],[.245,1.30],[.155,1.50],[.15,1.68],
+   [.195,1.724],[.19,1.75],[.147,1.745],[.124,1.70],[.127,1.54],
+   [.20,1.32],[.32,1.02],[.43,.80],[.488,.57],[.465,.35],[.37,.18],[.20,.12],[0,.12]],glass);
+  profile([[0,.12],[.21,.12],[.34,.18],[.44,.32],[.47,.54],[.425,.74],[0,.74]],liquid);
+  torus(objectGroup,.175,.014,metal,0,1.733,0);
+  profile([[0,1.74],[.11,1.74],[.123,1.79],[.10,1.84],[.18,1.94],[.20,2.03],[.15,2.11],[0,2.15]],glass);
+}
+const builders={bunny:makeBunny,flowerpot:makeFlower,teapot:makeTeapot,vase:makeVase,perfume:makePerfume,trophy:makeTrophy,camera:makeCamera,owl:makeOwl,crystal:makeCrystal,knot:makeKnot,cactus:makeCactus,mirrorball:makeMirror,coffee:makeCoffee,goblet:makeGoblet,pocketwatch:makePocketWatch,lantern:makeLantern,elephant:makeElephant,headphones:makeHeadphones,chess:makeChess,waterglobe:makeWaterGlobe,dicepair:makeDicePair,dicetrio:makeDiceTrio,hourglass:makeHourglass,fruitbowl:makeFruitBowl,teaset:makeTeaSet,perfumeduo:makePerfumeDuo,succulenttrio:makeSucculentTrio,bookstack:makeBookStack,candletrio:makeCandleTrio,vasepair:makeVasePair,studyset:makeStudySet,decanter:makeDecanter};
+
+function updateBounds(){objectGroup.updateWorldMatrix(true,true);const bb=new THREE.Box3().setFromObject(objectGroup);if(bb.isEmpty())return;const sphere=bb.getBoundingSphere(new THREE.Sphere());currentCentre.copy(sphere.center);objectRadius=Math.max(.24,sphere.radius);objectHeight=bb.max.y-bb.min.y;const fov=rad(Number($('fov').value)),minFov=Math.min(fov,2*Math.atan(Math.tan(fov/2)*getAspect()));const dist=objectRadius/Math.sin(minFov*.5)*1.13;controls.target.copy(currentCentre);controls.minDistance=Math.max(.3,objectRadius*.8);controls.maxDistance=Math.max(14,dist*3);camera.position.set(dist*.73,currentCentre.y+dist*.32,dist*.86);camera.lookAt(currentCentre);controls.update()}
+function getAspect(){const [w,h]=$('resolution').value.split('x').map(Number);return w/h}
+function refreshRoles(){const s=$('materialRole');s.replaceChildren();for(const k of roles.keys()){let o=document.createElement('option');o.value=k;o.textContent=k;s.appendChild(o)}loadMaterialControls()}
+function releaseOldGeometry(root){root.traverse(o=>{if(!o.isMesh)return;o.geometry?.dispose();for(const m of (Array.isArray(o.material)?o.material:[o.material]))m?.dispose()})}
+function loadBuiltin(type){if(busy)return;sourceGLBFile=null;activeAsset=null;importedGLB=null;activeType=type;$('objectType').value=type;scene.remove(objectGroup);releaseOldGeometry(objectGroup);objectGroup=new THREE.Group();scene.add(objectGroup);roles.clear();builders[type]();objectGroup.scale.setScalar(1);objectGroup.rotation.set(0,0,0);$('objectScale').value=1;$('objectYaw').value=0;updateObjectControls();refreshRoles();updateBounds();invalidatePath();$('modelBadge').textContent=$('objectType').selectedOptions[0]?.textContent.split(' · ')[0]||type;status('Loaded '+$('modelBadge').textContent+'. Edit materials or generate camera poses.',0)}
+function alignObjectToStage(){const target=($('showPedestal').checked?.020:ground.position.y)+.004;objectGroup.position.y=0;objectGroup.updateWorldMatrix(true,true);const bbox=new THREE.Box3().setFromObject(objectGroup);if(!bbox.isEmpty()){objectGroup.position.y=target-bbox.min.y;objectGroup.updateWorldMatrix(true,true)}}
+function updateObjectControls(){objectGroup.scale.setScalar(Number($('objectScale').value));objectGroup.rotation.y=rad(Number($('objectYaw').value));$('objectScaleVal').textContent=Number($('objectScale').value).toFixed(2)+'×';$('objectYawVal').textContent=$('objectYaw').value+'°';alignObjectToStage();invalidatePath()}
+function normalizeImported(){objectGroup.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(objectGroup),s=b.getSize(new THREE.Vector3()),mid=b.getCenter(new THREE.Vector3());const largest=Math.max(s.x,s.y,s.z);if(largest<1e-8)throw Error('Imported model has no measurable geometry');const normalization=1.75/largest;const source=objectGroup.children[0];source.scale.setScalar(normalization);source.position.set(-mid.x*normalization,-b.min.y*normalization,-mid.z*normalization);objectGroup.updateWorldMatrix(true,true);updateBounds()}
+async function loadGLB(file){
+ const loader=new GLTFLoader();
+ const draco=new DRACOLoader();draco.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');loader.setDRACOLoader(draco);
+ const ktx2=new KTX2Loader();ktx2.setTranscoderPath('https://unpkg.com/three@0.159.0/examples/jsm/libs/basis/').detectSupport(renderer);loader.setKTX2Loader(ktx2);
+ let gltf;
+ try{const buffer=await file.arrayBuffer();gltf=await new Promise((yes,no)=>loader.parse(buffer,'',yes,no))}
+ finally{draco.dispose();ktx2.dispose()}
+ const next=new THREE.Group();next.add(gltf.scene);
+ let count=0;const nextRoles=new Map();
+ gltf.scene.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;o.receiveShadow=true;
+   const originals=Array.isArray(o.material)?o.material:[o.material];
+   const copies=originals.map(m=>{
+    const k=`${++count}. ${(m.name||o.name||'Material').slice(0,54)}`;
+    // Retain PBR maps: baseColor, normal, metallic-roughness, AO, emissive, transmission,
+    // sheen, iridescence, clearcoat, anisotropy, variants' original material geometry, etc.
+    const clone=m.isMeshStandardMaterial?m.clone():new THREE.MeshPhysicalMaterial({color:m.color||new THREE.Color('#ffffff'),map:m.map||null,roughness:.5});
+    nextRoles.set(k,clone);return clone
+   });o.material=Array.isArray(o.material)?copies:copies[0];
+ });
+ if(!count)throw new Error('Model has no renderable meshes');
+ const old=objectGroup;objectGroup=next;scene.add(next);roles=nextRoles;scene.remove(old);releaseOldGeometry(old);
+ activeType='imported';importedGLB=file.name;sourceGLBFile=file;
+ normalizeImported();$('objectScale').value=1;$('objectYaw').value=0;updateObjectControls();refreshRoles();invalidatePath();
+ $('modelBadge').textContent=file.name;status('Loaded '+file.name+' with original texture maps and geometry.',0);
+}
+async function downloadCuratedGLB(a,id){
+ // Each candidate must be the exact binary GLB, not a glTF index entry or a Github HTML page.
+ const suffix=`KhronosGroup/glTF-Sample-Assets/main/Models/${id}/glTF-Binary/${id}.glb`;
+ const urls=[a.model,
+   `https://media.githubusercontent.com/media/${suffix}`,
+   `https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Assets@main/Models/${id}/glTF-Binary/${id}.glb`];
+ const errors=[];
+ for(const url of [...new Set(urls)]){
+  const ctl=new AbortController();const timeout=setTimeout(()=>ctl.abort(),45000);
+  try{
+   const res=await fetch(url,{mode:'cors',cache:'force-cache',signal:ctl.signal});
+   if(!res.ok)throw Error('HTTP '+res.status);
+   const buffer=await res.arrayBuffer();
+   if(buffer.byteLength<20)throw Error('File is too small to be a GLB');
+   const header=new DataView(buffer);
+   if(header.getUint32(0,true)!==0x46546c67||header.getUint32(4,true)!==2)
+     throw Error('Response is not a glTF 2.0 GLB file');
+   const reported=header.getUint32(8,true);
+   if(reported!==buffer.byteLength)throw Error(`Incomplete GLB download (${buffer.byteLength}/${reported} bytes)`);
+   return new File([buffer],id+'.glb',{type:'model/gltf-binary'});
+  }catch(err){errors.push(new URL(url).hostname+': '+err.message)}
+  finally{clearTimeout(timeout)}
+ }
+ throw Error(errors.join('; '));
+}
+function assertLoadedSelection(){
+ if(loadingAsset)throw Error('A model is loading; finish loading before capturing');
+ if(!objectGroup||!objectGroup.children.length)throw Error('No model loaded');
+ if(activeType==='imported'&&sourceGLBFile)return;
+ const requested=$('objectType').value;
+ if(requested!==activeType||!activeAsset||requested!=='asset:'+activeAsset){
+  throw Error('The selected model is not loaded. Press "Load selected model" and wait for Ready before capture/export.');
+ }
+}
+async function loadCuratedAsset(id){
+ const a=CURATED_ASSETS[id];if(!a||busy||loadingAsset)return;
+ loadingAsset=true;const button=$('loadObject');button.disabled=true;
+ const previous=$('modelBadge').textContent;
+ const msg=$('assetCredit');
+ msg.textContent=`Loading ${a.name} from Khronos (CC licence: ${a.license}). This may be a large file…`;
+ status('Fetching and validating model: '+a.name+'…',.06);
+ try{
+  const file=await downloadCuratedGLB(a,id);
+  status('Parsing mesh, materials and textures: '+a.name+'…',.35);
+  await loadGLB(file);
+  activeAsset=id;activeType='asset:'+id;$('objectType').value=activeType;
+  $('modelBadge').textContent=a.name.split(' · ')[0];
+  $('groundFinish').value=a.floor;$('groundColor').value='#ffffff';applyStage();
+  msg.replaceChildren();
+  const anchor=document.createElement('a');anchor.href=a.source;anchor.target='_blank';anchor.rel='noopener noreferrer';anchor.style.color='#8bdacc';anchor.textContent='View original model and licence';msg.append(anchor);
+  msg.append(document.createTextNode(' · '+a.credit+' · '+a.license+' · Source GLB '+(file.size/1048576).toFixed(1)+' MiB · loaded'));
+  generatePath();
+  status('Ready: '+a.name+' — asset geometry loaded successfully. You may capture/export.',1);
+ }catch(err){console.error(err);$('modelBadge').textContent=previous;
+  msg.replaceChildren();msg.append(document.createTextNode('NOT LOADED: '+err.message+' · '));
+  const aLink=document.createElement('a');aLink.href=a.source;aLink.target='_blank';aLink.rel='noopener noreferrer';aLink.textContent='Source / manual GLB download';aLink.style.color='#8bdacc';msg.append(aLink);
+  status('Load failed for '+a.name+'. The previous model is unchanged; export of this selection is blocked.',0);
+ }finally{loadingAsset=false;button.disabled=false}
+}
+
+function applyPreset(m,p){m.color.setHex(p.color);m.metalness=p.metalness;m.roughness=p.roughness;m.clearcoat=p.clearcoat;m.transmission=p.transmission;m.ior=p.ior;m.thickness=p.thickness??0;m.map=p.map||null;m.side=p.side||THREE.FrontSide;m.transparent=false;m.opacity=1;m.needsUpdate=true;invalidatePath()}
+function roleMaterial(){return roles.get($('materialRole').value)}
+function loadMaterialControls(){const m=roleMaterial();if(!m)return;$('matColor').value='#'+m.color.getHexString();const vs={matMetal:m.metalness??0,matRough:m.roughness??.5,matCoat:m.clearcoat??0,matTrans:m.transmission??0,matIor:m.ior??1.5};for(const [id,val] of Object.entries(vs)){$(id).value=val;$(id+'Val').textContent=Number(val).toFixed(2)}$('matFlat').checked=!!m.flatShading}
+function updateMaterial(){const m=roleMaterial();if(!m)return;m.color.set($('matColor').value);m.metalness=Number($('matMetal').value);m.roughness=Number($('matRough').value);m.clearcoat=Number($('matCoat').value);m.transmission=Number($('matTrans').value);m.ior=Number($('matIor').value);m.flatShading=$('matFlat').checked;m.side=m.transmission>0?THREE.DoubleSide:m.side;m.thickness=m.transmission>0?Math.max(.1,m.thickness||.2):m.thickness;m.needsUpdate=true;for(const id of ['matMetal','matRough','matCoat','matTrans','matIor'])$(id+'Val').textContent=Number($(id).value).toFixed(2);invalidatePath()}
+function seededNoiseTexture(kind){const c=document.createElement('canvas');c.width=512;c.height=512;const g=c.getContext('2d');g.fillStyle='#dddfe1';g.fillRect(0,0,512,512);let seed=1247;const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};if(kind==='checker'){const n=16,w=512/n;for(let x=0;x<n;x++)for(let y=0;y<n;y++){g.fillStyle=(x+y)%2?'#c5cbd3':'#f5f5f2';g.fillRect(x*w,y*w,w,w);g.fillStyle='#46546b';g.fillRect(x*w+4,y*w+4,5,5)}}else if(kind==='marble'){const grad=g.createLinearGradient(0,0,512,512);grad.addColorStop(0,'#f4f5f7');grad.addColorStop(1,'#ced5de');g.fillStyle=grad;g.fillRect(0,0,512,512);for(let i=0;i<90;i++){g.strokeStyle=`rgba(120,130,145,${0.05+rnd()*0.11})`;g.lineWidth=.8+rnd()*3.2;const x=rnd()*512;g.beginPath();g.moveTo(x,0);g.bezierCurveTo(x+rnd()*90-45,120,x+rnd()*110-55,330,x+rnd()*70-35,512);g.stroke()}}else if(kind==='wood'){g.fillStyle='#8e6647';g.fillRect(0,0,512,512);for(let x=0;x<512;x+=84){g.fillStyle=(x/84)%2?'#7a553a':'#9b7351';g.fillRect(x,0,80,512);for(let k=0;k<10;k++){g.strokeStyle='rgba(70,44,26,.22)';g.lineWidth=1+rnd()*2.5;const xx=x+rnd()*80;g.beginPath();g.moveTo(xx,0);g.bezierCurveTo(xx+rnd()*20-10,160,xx+rnd()*26-13,360,xx+rnd()*18-9,512);g.stroke()}}}else if(kind==='terrazzo'){g.fillStyle='#d8d5cf';g.fillRect(0,0,512,512);const chips=['#7d8da3','#bfa57d','#5a676e','#efece4','#b96a5d','#69806f'];for(let i=0;i<2500;i++){g.fillStyle=chips[(rnd()*chips.length)|0];const x=rnd()*512,y=rnd()*512,r=2+rnd()*8;g.beginPath();g.moveTo(x+r,y);for(let k=0;k<5;k++){const a=k*2*Math.PI/5+rnd()*.4;g.lineTo(x+Math.cos(a)*r*(.5+rnd()*1.0),y+Math.sin(a)*r*(.5+rnd()*1.0))}g.closePath();g.fill()}}else if(kind==='sandstone'){const grad=g.createLinearGradient(0,0,0,512);grad.addColorStop(0,'#d9c1a0');grad.addColorStop(1,'#caa580');g.fillStyle=grad;g.fillRect(0,0,512,512);for(let y=0;y<512;y+=28){g.fillStyle=`rgba(255,255,255,${0.03+rnd()*0.04})`;g.fillRect(0,y,512,7+rnd()*8)}for(let i=0;i<18000;i++){g.fillStyle=rnd()>.5?'rgba(255,255,255,.08)':'rgba(86,65,43,.06)';g.fillRect(rnd()*512,rnd()*512,1+rnd()*2.6,1+rnd()*2.6)}}else if(kind==='studio'){const grad=g.createRadialGradient(256,140,40,256,260,340);grad.addColorStop(0,'#f3f4f6');grad.addColorStop(.6,'#e6eaee');grad.addColorStop(1,'#d4dae2');g.fillStyle=grad;g.fillRect(0,0,512,512)}else{for(let i=0;i<35000;i++){g.fillStyle=rnd()>.5?'rgba(40,50,68,.1)':'rgba(255,255,255,.17)';g.fillRect(rnd()*512,rnd()*512,1+rnd()*2,1+rnd()*2)}}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(10,10);t.colorSpace=THREE.SRGBColorSpace;return t}
+const groundMaps={matte:null,textured:seededNoiseTexture('speckle'),checker:seededNoiseTexture('checker'),marble:seededNoiseTexture('marble'),wood:seededNoiseTexture('wood'),terrazzo:seededNoiseTexture('terrazzo'),sandstone:seededNoiseTexture('sandstone'),studio:seededNoiseTexture('studio')};
+function applyStage(){scene.background.set($('backgroundColor').value);groundMat.color.set($('groundColor').value);groundMat.map=groundMaps[$('groundFinish').value]||null;const finish=$('groundFinish').value;groundMat.roughness={matte:.96,textured:.90,checker:.88,marble:.32,wood:.58,terrazzo:.74,sandstone:.86,studio:.93}[finish]??.9;groundMat.metalness=finish==='marble'?0.03:0;groundMat.needsUpdate=true;ground.visible=$('showGround').checked;pedestal.visible=$('showPedestal').checked;alignObjectToStage();invalidatePath()}
+function applyLighting(){key.color.set($('keyColor').value);key.intensity=Number($('keyPower').value);fill.intensity=Number($('fillPower').value);rim.intensity=Number($('rimPower').value);scene.environmentIntensity=Number($('envStrength').value);renderer.toneMappingExposure=Number($('exposure').value);renderer.shadowMap.enabled=$('shadow').checked;for(const id of ['keyPower','fillPower','rimPower','envStrength','exposure'])$(id+'Val').textContent=Number($(id).value).toFixed(2);invalidatePath()}
+function invalidatePath(){pathDirty=true;pathOverlay.visible=false;$('qa').textContent='Settings changed — regenerate camera positions before export.'}
+function clearPathOverlay(){for(const c of [...pathOverlay.children]){pathOverlay.remove(c);c.geometry?.dispose();if(c.material)c.material.dispose()}}
+function orbitFrame(phi,elev,dist,target,ring,view){const a=rad(elev),pos=new THREE.Vector3(target.x+dist*Math.cos(a)*Math.cos(phi),target.y+dist*Math.sin(a),target.z+dist*Math.cos(a)*Math.sin(phi));let actualElevation=elev;if(ground.visible&&pos.y<.11){pos.y=.11;actualElevation=deg(Math.atan2(pos.y-target.y,Math.hypot(pos.x-target.x,pos.z-target.z)))}return{pos,look:target.clone(),ring,view,azimuth:deg(phi)%360,elevation:actualElevation,plannedElevation:elev}}
+function cameraElevationRange(){
+ const mode=$('captureProfile').value;
+ const bb=new THREE.Box3().setFromObject(objectGroup);
+ const s=bb.getSize(new THREE.Vector3());
+ const footprint=Math.max(s.x,s.z);
+ const nearFlat=footprint>.05 && s.x>footprint*.4 && s.z>footprint*.4 && s.y/footprint<.32;
+ const tabletop=mode==='tabletop'||(mode==='auto'&&(activeAsset==='ABeautifulGame'||nearFlat));
+ return tabletop?{min:40,max:78,cap:85,label:'Tabletop / high-angle'}:
+   {min:Number($('elevMin').value),max:Number($('elevMax').value),cap:null,label:'General object'};
+}
+function computeFrames(){
+ updateBoundsForCapture();
+ const count=Number($('perRing').value),rings=Number($('rings').value),range=cameraElevationRange();
+ const {min,max}=range;
+ if(min>=max)throw Error('Lowest elevation must be below highest elevation.');
+ const vfov=rad(Number($('fov').value)),hfov=2*Math.atan(Math.tan(vfov/2)*getAspect());
+ const fit=objectRadius/Math.sin(Math.min(vfov,hfov)/2)*1.20;
+ const dist=fit*Number($('radius').value),list=[];
+ for(let r=0;r<rings;r++){
+   const el=min+(max-min)*r/(rings-1),phase=r%2*.5;
+   for(let i=0;i<count;i++){
+     const phi=2*Math.PI*(i+phase)/count;
+     list.push(orbitFrame(phi,el,dist,currentCentre,r+1,i+1));
+   }
+ }
+ if($('topCap').checked){
+   const capElevation=range.cap??Math.min(80,max+12);
+   for(let i=0;i<12;i++)list.push(orbitFrame(i*2*Math.PI/12,capElevation,dist*1.08,currentCentre,rings+1,i+1));
+ }
+ return list;
+}
+function updateBoundsForCapture(){objectGroup.updateWorldMatrix(true,true);const box=new THREE.Box3().setFromObject(objectGroup),s=new THREE.Sphere();box.getBoundingSphere(s);currentCentre.copy(s.center);objectRadius=Math.max(.24,s.radius);objectHeight=box.max.y-box.min.y;camera.fov=Number($('fov').value);camera.updateProjectionMatrix()}
+function buildPath(){clearPathOverlay();const ringPoints=new Map();for(const f of frames){if(!ringPoints.has(f.ring))ringPoints.set(f.ring,[]);ringPoints.get(f.ring).push(f.pos)}for(const [r,pts] of ringPoints){if(pts.length<2)continue;const path=new THREE.BufferGeometry().setFromPoints([...pts,pts[0]]);const hue=(r-1)/Math.max(1,ringPoints.size);pathOverlay.add(new THREE.Line(path,new THREE.LineBasicMaterial({color:new THREE.Color().setHSL(.5+hue*.30,.75,.42),depthTest:false,transparent:true,opacity:.8})));for(let i=0;i<pts.length;i+=Math.max(1,Math.floor(pts.length/12))){const sphere=new THREE.Mesh(new THREE.SphereGeometry(.025,8,6),new THREE.MeshBasicMaterial({color:0x16bea1,depthTest:false}));sphere.position.copy(pts[i]);pathOverlay.add(sphere)}}pathOverlay.visible=$('showPath').checked&&!preview}
+function checkQA(){const range=cameraElevationRange(),min=range.min,max=range.max,n=Number($('perRing').value),test=Number($('testEvery').value),nTest=test?frames.filter((_,i)=>(i+1)%test===0).length:0;let floorAdjust=0,maxFill=0,clipped=0;const box=new THREE.Box3().setFromObject(objectGroup),corners=[];for(let x of [box.min.x,box.max.x])for(let y of [box.min.y,box.max.y])for(let z of [box.min.z,box.max.z])corners.push(new THREE.Vector3(x,y,z));const aspect=getAspect(),oldAspect=camera.aspect,oldPos=camera.position.clone(),oldQ=camera.quaternion.clone();camera.aspect=aspect;camera.updateProjectionMatrix();for(const f of frames){if(f.plannedElevation!==f.elevation)floorAdjust++;camera.position.copy(f.pos);camera.lookAt(f.look);camera.updateMatrixWorld(true);let fill=0;for(const point of corners){let c=point.clone().project(camera);fill=Math.max(fill,Math.abs(c.x),Math.abs(c.y));if(Math.abs(c.x)>1||Math.abs(c.y)>1||c.z>1)clipped++}maxFill=Math.max(maxFill,fill)}camera.aspect=oldAspect;camera.position.copy(oldPos);camera.quaternion.copy(oldQ);camera.updateProjectionMatrix();const text=`${frames.length} calibrated poses · ${frames.length-nTest} train + ${nTest} held-out test. ${$('rings').value} elevation rings${$('topCap').checked?' + top cap':''}; ${n} azimuthal positions/ring (${(360/n).toFixed(1)}° spacing). ${range.label}: elevation ${min}°–${max}°${$('topCap').checked?' (+ top-cap '+(range.cap??Math.min(80,max+12))+'°)':''}. Preview uses a correctly proportioned export frame. Maximum projected bounding-box extent ${(maxFill*100).toFixed(0)}% of half-frame. ${clipped?'WARNING: some bounding-box corners leave the image.':'No bounding-box corner clipping detected.'} ${floorAdjust?floorAdjust+' camera poses lifted above ground.':''} This is geometry/framing QA, not an occlusion or feature-matching guarantee.`;$('qa').textContent=text;$('infoDetail').textContent=`${frames.length-nTest} train / ${nTest} test · ${maxFill.toFixed(2)} max frame extent`;return{total:frames.length,train:frames.length-nTest,test:nTest,rings:Number($('rings').value),azimuthSpacingDeg:360/n,maximumNdcExtent:maxFill,clippedBoundingBoxCorners:clipped,groundAdjustedViews:floorAdjust,limitations:'Frustum QA only; does not guarantee useful SfM feature tracks, visibility or accurate view-dependent material reconstruction.'}}
+let lastQA=null;function generatePath(){if(busy)return;frames=computeFrames();pathDirty=false;buildPath();$('frameSlider').max=frames.length;$('frameSlider').value=1;$('countBadge').textContent=frames.length+' views';lastQA=checkQA();status('Planned '+frames.length+' object-centred camera poses.',0);return frames}
+function previewFrame(idx){if(busy)return;if(pathDirty||!frames.length)generatePath();if(!frames.length)return;currentIndex=(idx+frames.length)%frames.length;preview=true;controls.enabled=false;pathOverlay.visible=false;const f=frames[currentIndex];camera.position.copy(f.pos);camera.lookAt(f.look);camera.aspect=getAspect();camera.updateProjectionMatrix();camera.updateMatrixWorld(true);$('frameSlider').value=currentIndex+1;const [rw,rh]=$('resolution').value.split('x').map(Number);$('frameDetails').textContent=`Frame ${currentIndex+1}/${frames.length} · ${rw}×${rh} preview · ring ${f.ring}, view ${f.view} · azimuth ${f.azimuth.toFixed(1)}°, elevation ${f.elevation.toFixed(1)}° · pos (${f.pos.toArray().map(a=>a.toFixed(2)).join(', ')}) m`;status('Previewing undistorted export frame '+(currentIndex+1)+'.')}
+function freeOrbit(){preview=false;$('previewFrameGuide').style.display='none';controls.enabled=!busy;camera.aspect=canvas.clientWidth/canvas.clientHeight;camera.updateProjectionMatrix();updateBounds();pathOverlay.visible=$('showPath').checked;status('Free orbit viewer.')}
+function fields(){const o={};document.querySelectorAll('#panel input,#panel select').forEach(e=>{if(e.id&&e.type!=='file')o[e.id]=e.type==='checkbox'?e.checked:e.value});return o}
+function saveSceneConfig(){return{format:'ObjectLabSingle3DGSScene',version:1,object_type:activeType,asset_source:activeAsset?CURATED_ASSETS[activeAsset]:null,imported_filename:importedGLB,actual_object_rotation_y:objectGroup.rotation.y,settings:fields(),material_roles:Object.fromEntries([...roles.entries()].map(([k,m])=>[k,{color:'#'+m.color.getHexString(),metalness:m.metalness,roughness:m.roughness,clearcoat:m.clearcoat,transmission:m.transmission,ior:m.ior,thickness:m.thickness,flatShading:m.flatShading,side:m.side}]))}}
+async function loadSceneConfig(json){if(json.format!=='ObjectLabSingle3DGSScene')throw Error('Not an ObjectLab configuration.');if(json.object_type==='imported')throw Error('Import the original .glb file before restoring its settings.');if(json.object_type.startsWith('asset:')){await loadCuratedAsset(json.object_type.slice(6));if(activeType!==json.object_type)throw new Error('Could not reload the saved curated asset.')}else{$('objectType').value=json.object_type;loadBuiltin(json.object_type)}for(const [k,v]of Object.entries(json.settings||{})){const el=$(k);if(!el||el.type==='file')continue;if(el.type==='checkbox')el.checked=!!v;else if(k==='resolution' && ![...el.options].some(o=>o.value===String(v))) el.value='1280x720';else el.value=v}updateObjectControls();applyStage();applyLighting();for(const [role,p]of Object.entries(json.material_roles||{})){const m=roles.get(role);if(!m)continue;m.color.set(p.color);for(const k of ['metalness','roughness','clearcoat','transmission','ior','thickness','flatShading','side'])if(p[k]!==undefined)m[k]=p[k];m.needsUpdate=true}refreshRoles();updateBounds();invalidatePath();status('Scene configuration loaded; regenerate cameras.')}
+function intrinsics(w,h){const fy=h/(2*Math.tan(rad(Number($('fov').value))/2));return{camera_model:'PINHOLE',width:w,height:h,fl_x:fy,fl_y:fy,cx:w/2,cy:h/2,camera_fov_degrees:Number($('fov').value),distortion:[0,0,0,0]}}
+function c2w(){camera.updateMatrixWorld(true);const a=camera.matrixWorld.elements;return[[a[0],a[4],a[8],a[12]],[a[1],a[5],a[9],a[13]],[a[2],a[6],a[10],a[14]],[a[3],a[7],a[11],a[15]]]}
+const opencvFlip=new THREE.Matrix4().makeRotationX(Math.PI);function w2c(){camera.updateMatrixWorld(true);const m=opencvFlip.clone().multiply(camera.matrixWorldInverse),q=new THREE.Quaternion().setFromRotationMatrix(m).normalize(),a=m.elements;return{q:[q.w,q.x,q.y,q.z],t:[a[12],a[13],a[14]]}}
+function colmapFiles(items,w,h){const intr=intrinsics(w,h);const line=`1 PINHOLE ${w} ${h} ${intr.fl_x.toFixed(9)} ${intr.fl_y.toFixed(9)} ${intr.cx.toFixed(9)} ${intr.cy.toFixed(9)}`;return{'cameras.txt':`# Camera list\n${line}\n`,'images.txt':'# IMAGE_ID QW QX QY QZ TX TY TZ CAMERA_ID NAME followed by empty POINTS2D line\n'+items.map((f,i)=>`${i+1} ${[...f.w2c.q,...f.w2c.t].map(v=>v.toFixed(12)).join(' ')} 1 ${f.filename}\n\n`).join(''),'points3D.txt':'# Intentionally empty: exact camera poses, not an SfM point cloud.\n'}}
+function toBlob(type,quality=1){return new Promise((ok,no)=>canvas.toBlob(b=>b?ok(b):no(Error('Canvas toBlob failed')),'image/'+type,quality))}
+const maskMat=new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide,depthTest:true,depthWrite:true});
+async function maskBlob(){const bg=scene.background,override=scene.overrideMaterial,wasGround=ground.visible,wasPed=pedestal.visible,oldTone=renderer.toneMapping,oldExposure=renderer.toneMappingExposure,oldEnv=scene.environment;try{scene.background=new THREE.Color(0x000000);scene.overrideMaterial=maskMat;ground.visible=false;pedestal.visible=false;renderer.toneMapping=THREE.NoToneMapping;renderer.toneMappingExposure=1;scene.environment=null;renderer.render(scene,camera);return await toBlob('png')}finally{scene.background=bg;scene.overrideMaterial=override;ground.visible=wasGround;pedestal.visible=wasPed;renderer.toneMapping=oldTone;renderer.toneMappingExposure=oldExposure;scene.environment=oldEnv}}
+async function captureResolution(w,h,func){if(busy)return;const oldSize=renderer.getSize(new THREE.Vector2()),oldRatio=renderer.getPixelRatio(),oldAspect=camera.aspect,oldPos=camera.position.clone(),oldQ=camera.quaternion.clone(),oldTarget=controls.target.clone(),oldPath=pathOverlay.visible,oldSpin=$('spinPreview').checked;busy=true;document.querySelectorAll('button,input,select').forEach(el=>el.disabled=true);controls.enabled=false;pathOverlay.visible=false;$('previewFrameGuide').style.display='none';try{$('spinPreview').checked=false;renderer.setScissorTest(false);renderer.setPixelRatio(1);renderer.setSize(w,h,false);renderer.setViewport(0,0,w,h);renderer.setScissor(0,0,w,h);camera.aspect=w/h;camera.updateProjectionMatrix();await func()}finally{renderer.setScissorTest(false);renderer.setPixelRatio(oldRatio);renderer.setSize(oldSize.x,oldSize.y,false);renderer.setViewport(0,0,oldSize.x,oldSize.y);renderer.setScissor(0,0,oldSize.x,oldSize.y);camera.aspect=oldAspect;camera.position.copy(oldPos);camera.quaternion.copy(oldQ);controls.target.copy(oldTarget);camera.updateProjectionMatrix();pathOverlay.visible=oldPath;document.querySelectorAll('button,input,select').forEach(el=>el.disabled=false);$('spinPreview').checked=oldSpin;controls.enabled=!preview;busy=false;renderViewer()}}
+async function snapshot(){try{assertLoadedSelection();const [w,h]=$('resolution').value.split('x').map(Number);await captureResolution(w,h,async()=>{renderer.render(scene,camera);download(await toBlob($('imageFormat').value==='jpg'?'jpeg':'png',.96),'objectlab_snapshot.'+$('imageFormat').value);status('Saved current rendered image.',1)})}catch(e){console.error(e);status('Snapshot error: '+e.message)}}
+async function objectGLB(){const exp=new GLTFExporter();return await new Promise((yes,no)=>exp.parse(objectGroup,yes,no,{binary:true,onlyVisible:true}))}
+async function exportData(){if(busy)return;try{assertLoadedSelection();if(pathDirty||!frames.length)generatePath();const planned=[...frames];const [w,h]=$('resolution').value.split('x').map(Number),ext=$('imageFormat').value,splitN=Number($('testEvery').value),withMasks=$('makeMasks').checked;const opts={makeColmap:$('makeColmap').checked,makeGLB:$('makeGLB').checked,makeScene:$('makeScene').checked};const dataSizeEstimate=planned.length*w*h*4/1e9;if(dataSizeEstimate>4)status('Large capture: browser memory may be insufficient. Consider fewer views or 1280×720.');const conf=saveSceneConfig(),qa=lastQA;await captureResolution(w,h,async()=>{const zip=new JSZip(),intr=intrinsics(w,h),train={...intr,frames:[]},test={...intr,frames:[]},trainRec=[],testRec=[],records=[];for(let i=0;i<planned.length;i++){const f=planned[i],split=splitN&&(i+1)%splitN===0?'test':'train',name=String(i+1).padStart(6,'0')+'.'+ext;camera.position.copy(f.pos);camera.lookAt(f.look);camera.updateMatrixWorld(true);renderer.render(scene,camera);const blob=await toBlob(ext==='jpg'?'jpeg':'png',.96);zip.file(`${split}/images/${name}`,blob);if(withMasks){const mb=await maskBlob();zip.file(`${split}/masks/${String(i+1).padStart(6,'0')}.png`,mb)}const pose=c2w(),camPose=w2c(),frame={file_path:`./${split}/images/${name}`,transform_matrix:pose};(split==='train'?train:test).frames.push(frame);const rec={filename:name,split,ring:f.ring,view_in_ring:f.view,azimuth_deg:f.azimuth,elevation_deg:f.elevation,position_m:f.pos.toArray(),target_m:f.look.toArray(),transform_matrix:pose,w2c:camPose};(split==='train'?trainRec:testRec).push(rec);records.push(rec);status(`Capturing ${i+1}/${planned.length} · ${train.frames.length} train / ${test.frames.length} test`,.87*(i+1)/planned.length);if(i%3===0)await new Promise(resolve=>setTimeout(resolve,0))}zip.file('transforms_train.json',JSON.stringify(train,null,2));zip.file('transforms_test.json',JSON.stringify(test,null,2));zip.file('camera_poses.json',JSON.stringify({intrinsics:intr,convention:'c2w row-major, world +Y up; Three/OpenGL camera looks along -Z',views:records},null,2));zip.file('camera_poses.csv','filename,split,ring,view,azimuth_deg,elevation_deg,x_m,y_m,z_m,target_x_m,target_y_m,target_z_m\n'+records.map(r=>[r.filename,r.split,r.ring,r.view_in_ring,r.azimuth_deg.toFixed(4),r.elevation_deg.toFixed(4),...r.position_m,...r.target_m].join(',')).join('\n')+'\n');if(opts.makeColmap)for(const [split,rr]of [['train',trainRec],['test',testRec]]){const fs=colmapFiles(rr,w,h);for(const [name,content]of Object.entries(fs))zip.file(`known_poses_colmap/${split}/${name}`,content)}if(opts.makeGLB){status('Exporting source object mesh…',.88);try{zip.file('ground_truth_object.glb',sourceGLBFile?sourceGLBFile:await objectGLB())}catch(e){console.warn('GLB export unsuccessful',e);zip.file('GLB_EXPORT_NOTE.txt','GLB export failed: '+e.message)}}const manifest={scene:'ObjectLab single-object 3DGS',version:1,object_type:activeType,asset_source:activeAsset?CURATED_ASSETS[activeAsset]:null,imported_filename:importedGLB,resolution:[w,h],format:ext,world_up:'+Y',fixed_scene:true,fixed_lighting:true,material_roles:Object.keys(conf.material_roles),train:train.frames.length,test:test.frames.length,total:records.length,object_dimensions_note:'Scene units are nominal metres. Custom GLBs are normalized to ~1.75m maximum dimension.',camera:intr,capture_quality:'Three.js ACESFilmic with RoomEnvironment PMREM, PBR materials; reflections/transmission approximate.',qa:qa,holdout_policy:'All test images and test poses are withheld from COLMAP feature extraction, matching, triangulation, MVS and any 3DGS training.'};zip.file('capture_manifest.json',JSON.stringify(manifest,null,2));if(opts.makeScene)zip.file('scene_config.json',JSON.stringify(conf,null,2));if(activeAsset){const a=CURATED_ASSETS[activeAsset];zip.file('ASSET_CREDITS.txt',`Model: ${a.name}\nCreator(s): ${a.credit}\nLicense: ${a.license}\nSource: ${a.source}\nOriginal GLB: ${a.model}\nKeep attribution and original licence information with the dataset. Curated built-ins use CC0 and/or CC BY 4.0; check linked source licences before publication or redistribution.\n`);}zip.file('README_3DGS.txt',`OBJECTLAB — SINGLE-OBJECT SYNTHETIC 3DGS DATASET\n\nObject: ${activeType}; images: ${w} x ${h}, ${ext.toUpperCase()}\nTrain: ${train.frames.length}; held-out test: ${test.frames.length}\n\nDATASET CONTENTS\n train/images, test/images: actual rendered RGB images\n train/masks, test/masks: binary object silhouettes (optional)\n transforms_train.json and transforms_test.json: intrinsics and OpenGL c2w\n camera_poses.json/csv: individual views, split and exact camera poses\n known_poses_colmap/train and /test: PINHOLE cameras and image poses ONLY\n ground_truth_object.glb: source object mesh (if requested)\n capture_manifest.json and scene_config.json: settings, QA and split policy\n\nVanilla 3DGS often needs a NONEMPTY initial SfM point cloud.\nThe COLMAP points3D.txt files here are deliberately EMPTY.\nRun train-only COLMAP feature extraction / matching / triangulation, keeping\ncamera IDs and names consistent, to produce a nonempty sparse point cloud.\nAlternatively implement a separate initialization from source geometry for\na clearly labelled synthetic known-geometry experiment.\nDO NOT place held-out TEST frames in COLMAP training, MVS or 3DGS training.\n\nCAMERA CONVENTIONS\nWorld +Y up. JSON c2w: 4x4 row-major with camera +X right, +Y up, -Z forward.\nCOLMAP images.txt: OpenCV world-to-camera +Z forward, +Y down; quaternion qw,qx,qy,qz.\nImage size ${w}x${h}, vertical FOV ${intr.camera_fov_degrees} degrees, focal ${intr.fl_x.toFixed(7)} px.\n\nSTUDY NOTES\nThis is an OBJECT-CENTERED capture (or a source-model group), not a room. Materials include metallic reflection,\nclearcoat, non-Lambertian highlights, glass transmission and rough fabric.\nVanilla 3DGS cannot guarantee accurate reflections/refraction or artifact-free\nreconstruction, even with many views. Ground/pedestal may be visible if enabled.\nSilhouette masks describe the OBJECT only; the stage is omitted in the masks.\nLighting and materials remain fixed during capture; preview uses identical poses.\nFor very specular/transparent surfaces, keep a diffuse calibration version\nor known ground-truth geometry as a diagnostic.
+
+CURATED ASSET POLICY
+22 realistic-object candidates screened for CC0 / CC BY 4.0 licensing. No glTF test grids, calibration spheres, morph tests, or cloth sheets. Each remote GLB must load successfully before export. Retain ASSET_CREDITS.txt with renders, datasets, papers, slides, or JPEG-RF materials. External access not guaranteed.\n`);status('Compressing dataset…',.9);const result=await zip.generateAsync({type:'blob',compression:'STORE',streamFiles:true},meta=>status('Packaging ZIP '+meta.percent.toFixed(0)+'%',.9+.1*meta.percent/100));download(result,`objectlab_${activeType}_${planned.length}views_${w}x${h}.zip`);status(`Dataset exported: ${train.frames.length} train + ${test.frames.length} test images`,1)})}catch(e){console.error(e);status('Export error: '+e.message)}}
+function ui(){for(const b of document.querySelectorAll('nav button'))b.addEventListener('click',()=>{document.querySelectorAll('nav button').forEach(n=>n.classList.toggle('active',n===b));document.querySelectorAll('.tab').forEach(n=>n.classList.toggle('active',n.id==='tab-'+b.dataset.tab))});$('minimize').onclick=()=>{$('panel').classList.toggle('min');$('minimize').textContent=$('panel').classList.contains('min')?'+':'−'};$('loadObject').onclick=()=>{const t=$('objectType').value;if(t.startsWith('asset:'))loadCuratedAsset(t.slice(6));else loadBuiltin(t)};
+$('objectType').onchange=()=>{const choice=$('objectType').value;if(choice!==activeType){
+ $('assetCredit').textContent='Selected '+($('objectType').selectedOptions[0]?.textContent||choice)+'. NOT LOADED yet — press Load selected model. Dataset export is blocked until load succeeds.';
+ status('Selection changed. Load selected model before exporting.',0);
+ }};$('importGLB').onclick=()=>$('fileGLB').click();$('fileGLB').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{await loadGLB(f);activeAsset=null;$('assetCredit').textContent='User-imported GLB. Preserve its own licence and creator attribution.'}catch(err){console.error(err);status('Import error: '+err.message)}e.target.value=''};$('resetObject').onclick=()=>activeType.startsWith('asset:')?loadCuratedAsset(activeType.slice(6)):activeType==='imported'?status('To reset imported objects, import the GLB again.'):loadBuiltin(activeType);for(const id of ['objectYaw','objectScale'])$(id).oninput=()=>{updateObjectControls();updateBounds()};$('materialRole').onchange=loadMaterialControls;$('applyPreset').onclick=()=>{const m=roleMaterial();if(m)applyPreset(m,presets[$('materialPreset').value]);loadMaterialControls()};$('applyAll').onclick=()=>{for(const m of roles.values())applyPreset(m,presets[$('materialPreset').value]);loadMaterialControls()};for(const id of ['matColor','matMetal','matRough','matCoat','matTrans','matIor','matFlat'])$(id).oninput=updateMaterial;for(const id of ['backgroundColor','groundColor','groundFinish','showGround','showPedestal'])$(id).oninput=applyStage;for(const id of ['keyColor','keyPower','fillPower','rimPower','envStrength','exposure','shadow'])$(id).oninput=applyLighting;for(const id of ['rings','perRing','elevMin','elevMax','radius','fov'])$(id).oninput=()=>{const v=$(id).value;$(id+'Val').textContent=v+(id==='radius'?'×':id.startsWith('elev')||id==='fov'?'°':'');invalidatePath()};for(const id of ['topCap','resolution','testEvery','captureProfile'])$(id).onchange=()=>{invalidatePath();if(preview){preview=false;$('previewFrameGuide').style.display='none';controls.enabled=true;camera.aspect=canvas.clientWidth/canvas.clientHeight;camera.updateProjectionMatrix();updateBounds();status('Camera settings changed. Regenerate positions and preview again.')}};$('showPath').onchange=()=>{if(pathDirty)generatePath();pathOverlay.visible=$('showPath').checked&&!preview};const setPreset=(r,p)=>{$('rings').value=r;$('perRing').value=p;for(const k of ['rings','perRing'])$(k+'Val').textContent=$(k).value;invalidatePath();generatePath()};document.querySelectorAll('[data-count]').forEach(b=>b.onclick=()=>{const n=Number(b.dataset.count);setPreset(n===96?4:n===180?5:6,n===96?24:n===180?36:50);document.querySelectorAll('[data-count]').forEach(x=>x.classList.toggle('primary',x===b))});$('makePath').onclick=()=>{try{generatePath()}catch(e){status(e.message)}};$('fitObject').onclick=()=>{updateBounds();generatePath();status('Camera framing refitted to object.')};$('frameSlider').oninput=()=>previewFrame(Number($('frameSlider').value)-1);$('prev').onclick=()=>previewFrame(currentIndex-1);$('next').onclick=()=>previewFrame(currentIndex+1);$('previewFirst').onclick=()=>previewFrame(0);$('freeOrbit').onclick=freeOrbit;$('snapshot').onclick=snapshot;$('exportDataset').onclick=exportData;$('saveConfig').onclick=()=>{download(new Blob([JSON.stringify(saveSceneConfig(),null,2)],{type:'application/json'}),'objectlab_scene_config.json');status('Saved repeatable scene JSON.')};$('loadConfig').onclick=()=>$('fileConfig').click();$('fileConfig').onchange=async e=>{try{const file=e.target.files?.[0];if(file)await loadSceneConfig(JSON.parse(await file.text()))}catch(err){status('Settings import error: '+err.message)}e.target.value=''};$('resetAll').onclick=()=>{for(const [id,v]of Object.entries(DEFAULTS)){const el=$(id);if(el.type==='checkbox')el.checked=v;else el.value=v}applyStage();applyLighting();loadCuratedAsset('BoomBox');status('Studio reset; attempting to load the boombox GLB…')};}
+function previewViewport(w,h){
+ const panel=$('panel');
+ const edge=panel&&!panel.classList.contains('min')?panel.getBoundingClientRect().right+18:18;
+ const left=(w-edge>=190)?edge:12;
+ const maxW=Math.max(80,w-left-18),maxH=Math.max(80,h-52),aspect=getAspect();
+ const vw=Math.max(1,Math.floor(Math.min(maxW,maxH*aspect)));
+ const vh=Math.max(1,Math.floor(vw/aspect));
+ return {x:Math.floor(left+(maxW-vw)/2),y:Math.floor((h-vh)/2),vw,vh};
+}
+function renderViewer(){
+ const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;
+ const guide=$('previewFrameGuide');
+ if(!preview){guide.style.display='none';renderer.setScissorTest(false);renderer.setViewport(0,0,w,h);renderer.render(scene,camera);return;}
+ // The Three.js projection is calibrated for the export resolution. The viewport
+ // MUST have the SAME aspect ratio, otherwise the image is visibly distorted.
+ const p=previewViewport(w,h);
+ renderer.setScissorTest(false);renderer.setViewport(0,0,w,h);
+ renderer.setClearColor(scene.background||new THREE.Color('#111827'),1);
+ renderer.clear(true,true,true);
+ renderer.setViewport(p.x,p.y,p.vw,p.vh);
+ renderer.setScissor(p.x,p.y,p.vw,p.vh);
+ renderer.setScissorTest(true);
+ renderer.render(scene,camera);
+ renderer.setScissorTest(false);renderer.setViewport(0,0,w,h);
+ guide.style.display='block';guide.style.left=p.x+'px';guide.style.top=(h-p.y-p.vh)+'px';
+ guide.style.width=p.vw+'px';guide.style.height=p.vh+'px';
+ const [rw,rh]=$('resolution').value.split('x');$('previewFrameLabel').textContent=`Exact ${rw} × ${rh} export frame · aspect ${getAspect().toFixed(3)}`;
+}
+let prevTime=0;function animate(t){requestAnimationFrame(animate);const w=canvas.clientWidth,h=canvas.clientHeight;if(!busy&&w&&h){const dpr=renderer.getPixelRatio();if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){renderer.setSize(w,h,false);if(!preview){camera.aspect=w/h;camera.updateProjectionMatrix()}}if(!preview){if($('spinPreview').checked&&prevTime){objectGroup.rotation.y+=Math.min(.03,(t-prevTime)*.00022);pathDirty=true}controls.update()}renderViewer()}prevTime=t}ui();applyStage();applyLighting();$('modelBadge').textContent='No model loaded';status('Choose a model and press Load selected model. Capture/export stays blocked until the GLB loads.');requestAnimationFrame(animate);
+window.objectLab={scene,camera,renderer,get object(){return objectGroup},get frames(){return frames},loadBuiltin,loadCuratedAsset,curatedAssets:CURATED_ASSETS,generatePath,previewFrame,exportData,saveSceneConfig};
+</script></body></html>
